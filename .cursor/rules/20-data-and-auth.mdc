@@ -1,0 +1,56 @@
+---
+description: Backend HTTP client, error handling, session auth and the data access layer
+globs: lib/**/*.ts,app/actions/*.ts
+alwaysApply: false
+---
+
+## One network boundary
+`lib/api/client.ts` is the **only** file that calls `fetch`. ESLint blocks `fetch`
+in `app/`, `components/` and `lib/` outside `lib/api/`. A stray call would bypass
+cookie forwarding, the `data` envelope and `ApiError` — and from a Client
+Component it would hit this app's origin instead of the backend.
+
+- `apiRequest(path, { body, query, ...init })` — JSON-encodes plain objects,
+  forwards the browser's `Cookie` header, `cache: "no-store"`.
+- `apiData<T>(path, opts)` — unwraps `{ data }`, throws `ApiError`. Returns
+  `undefined` for 204.
+- `apiList<T>(path, opts)` — returns `{ data, meta }`.
+- `relaySetCookies(response)` — copies the API's `Set-Cookie` onto our response so
+  the session stays httpOnly end to end. Server Actions / Route Handlers only.
+
+Server-to-server calls mean **CORS never applies**; the backend's `CORS_ORIGIN`
+only matters for browser-originated requests, and this app makes none.
+
+## Errors
+API failures are `{ error: { code, message, details?, requestId } }`.
+`ApiError` carries `status`, `code`, `fieldErrors` (from `details[]`, keyed by the
+leaf field name so inputs render inline), `formErrors` (the API's `(root)`
+issues), and `requestId`.
+
+Branch on `code`, never on `message`. `isUnauthenticated` covers `UNAUTHORIZED`
+and `INVALID_SESSION`. Preserve `requestId` — it maps to the backend logs.
+
+## Auth
+`lib/dal.ts` is the only place session state is read:
+- `getCurrentUser()` — throws if the API is unreachable.
+- `getCurrentUserSafe()` — degrades to `null`. Use for the navbar and public
+  pages: the navbar renders in the root layout, so an error there escapes past
+  the route's boundary and replaces the whole app. Calls `unstable_rethrow` first.
+- `requireUser()` — redirects to `/login`.
+
+All three are `React.cache`d, so a page and the navbar cost one `/api/auth/me`
+between them. **Never authorize in a layout** — layouts don't re-render on
+navigation.
+
+## Types and validation
+`lib/types.ts` mirrors the backend's OpenAPI `User` and `Todo` schemas — start
+there when the API changes. `lib/validation.ts` mirrors its *request* schemas with
+identical bounds, so a form never rejects something the API would accept; the API
+re-validates regardless.
+
+## Env
+`lib/env.ts` validates `API_BASE_URL` and `SESSION_COOKIE_NAME` with zod. No
+defaults. Validation is lazy and memoised so importing never throws during
+`next build`; `instrumentation.ts` calls it at start-up and exits on failure.
+Read config through `serverEnv()`, not `process.env` — except in `proxy.ts`,
+which stays free of shared imports by design.

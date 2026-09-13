@@ -1,0 +1,45 @@
+---
+description: Design tokens, theming and component conventions
+globs: components/**/*.tsx,app/**/*.tsx,app/globals.css
+alwaysApply: false
+---
+
+Full reference: `docs/design-system.md`.
+
+## Tokens
+Every colour, shadow, radius and easing is a CSS variable in `app/globals.css`,
+defined twice (`:root` and `[data-theme="dark"]`) and exposed to Tailwind via
+`@theme inline`. **Never hard-code a hex value.**
+
+- Surfaces `bg-canvas` `bg-surface` `bg-surface-raised` `bg-surface-sunken`
+  `bg-surface-hover` `bg-surface-active`
+- Text `text-ink` `text-ink-muted` `text-ink-subtle` `text-ink-inverted`
+- Borders `border-hairline` `border-hairline-strong`
+- Accent `bg-accent` `text-accent` `bg-accent-soft` `text-accent-ink`
+  (+ `-hover`, `-active`)
+- Status `success` `warning` `danger`, each with a `-soft` fill
+- Shadows `shadow-xs|sm|panel|popover|modal`, plus the bevel highlight:
+  `shadow-[var(--bevel),var(--shadow-sm)]`
+- Radii `rounded-control` `rounded-panel` `rounded-window`
+- Motion `ease-[var(--ease-spring)]`, `animate-fade-up`, `animate-pop-in`
+
+Dark mode is `data-theme` on `<html>`, set pre-paint by `THEME_SCRIPT` from
+`lib/theme.ts` — **not** `prefers-color-scheme`, so an explicit choice beats the
+OS. Don't read the theme cookie in the root layout; that would opt it out of
+static prerendering.
+
+## Components
+Compose the primitives in `components/ui/` rather than restyling raw elements:
+`Button` (`variant`: primary|secondary|ghost|danger|subtle, `size`: sm|md|lg|icon,
+`loading`), `Input` (`invalid`), `Field` (`label`, `htmlFor`, `error: string[]`,
+`hint`), `Card`+parts, `Badge` (`tone`), `Avatar`, `Checkbox`, `SegmentedControl`,
+`DropdownMenu`, `Spinner`, `Skeleton`.
+
+- Merge classes with `cn()` from `lib/utils.ts`; always accept a `className` prop.
+- Server Component unless it needs state, effects or handlers.
+- `size-9` over `h-9 w-9`. Arbitrary type sizes (`text-[13px]`) are intentional.
+- Decorative SVGs inline, `aria-hidden="true"`, `stroke="currentColor"`.
+- Transition only the properties that move; presses use `active:scale-[0.97]`.
+- Format dates through `lib/utils.ts` (`formatDueDate`, `isOverdue`) — they work
+  in **UTC** on purpose, because a locale-dependent format renders differently on
+  the server and client and trips a hydration error.

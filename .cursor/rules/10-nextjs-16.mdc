@@ -1,0 +1,40 @@
+---
+description: Next.js 16 App Router conventions — routing, async request APIs, proxy, caching
+globs: app/**/*.tsx,app/**/*.ts,proxy.ts,instrumentation.ts,next.config.ts
+alwaysApply: false
+---
+
+Next.js **16.3.5**. Bundled docs: `node_modules/next/dist/docs/01-app/`.
+Full delta list: `docs/next-16.md`.
+
+## Differences that break remembered code
+- `cookies()`, `headers()`, `draftMode()` are **async only** — `await cookies()`.
+- `params` and `searchParams` are **Promises** — `await props.params`.
+- Type props with the generated helpers: `PageProps<'/todos/[id]'>`,
+  `LayoutProps<'/'>`, `RouteContext<'…'>`. Regenerate: `npx next typegen`.
+- `middleware.ts` → **`proxy.ts`**, nodejs runtime only (no edge).
+  `export const config = { matcher }` is unchanged.
+- `revalidateTag` needs a cacheLife profile: `revalidateTag('t', 'max')`.
+  `revalidatePath('/todos')` is **unchanged** — that is what this repo uses.
+- `updateTag()` (read-your-writes) and `refresh()` are new; `cacheLife`/`cacheTag`
+  lost their `unstable_` prefix.
+- `next lint` is removed — `npm run lint` runs eslint directly.
+
+## This app's routing
+- `app/(auth)/` is a route group: no URL segment.
+- `app/layout.tsx` must stay statically prerenderable — **do not add `cookies()`
+  to it**. The theme is read by the inline `THEME_SCRIPT` instead.
+- Data-fetching routes get a `loading.tsx` whose skeleton matches the real layout.
+- `app/error.tsx` is the route error boundary; its usual cause is an unreachable API.
+- `proxy.ts` checks cookie **presence** only — no API calls, because it runs on
+  every request including prefetches. Do **not** add a "signed-in users can't see
+  /login" redirect: a cookie can outlive its session and that creates a redirect
+  loop that locks users out. The authoritative check lives in `lib/dal.ts`.
+- Protecting a new route means adding its prefix to `PROTECTED_PREFIXES` *and*
+  calling `requireUser()` in the page.
+
+## Rendering
+Server Components by default. `redirect()` throws to unwind, so it must sit
+**outside** a try/catch. When catching around framework calls, call
+`unstable_rethrow(error)` first — Next signals `redirect()`, `notFound()` and
+dynamic rendering by throwing.

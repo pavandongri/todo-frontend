@@ -1,0 +1,5 @@
+# Keep the index focused on source the model can act on.
+package-lock.json
+*.tsbuildinfo
+.next/
+public/*.svg

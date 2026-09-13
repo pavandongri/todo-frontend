@@ -1,26 +1,292 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Dark mode variant
+   Driven by `data-theme` on <html>, set before first paint by the inline script
+   in app/layout.tsx. Not `prefers-color-scheme`, so an explicit user choice can
+   override the OS.
+   ========================================================================== */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ============================================================================
+   Theme source of truth
+   Every colour, shadow, radius and easing in the app resolves to one of these.
+   Components never hard-code a hex value.
+   ========================================================================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Surfaces, back to front */
+  --canvas: #f4f4f7;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eaeaef;
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --surface-active: rgba(0, 0, 0, 0.07);
+
+  /* Translucent "material" — window chrome, popovers */
+  --material: rgba(255, 255, 255, 0.72);
+  --material-thick: rgba(255, 255, 255, 0.93);
+
+  /* Text */
+  --ink: #1c1c1e;
+  --ink-muted: #61616b;
+  --ink-subtle: #8e8e97;
+  --ink-inverted: #ffffff;
+
+  /* Hairlines — macOS borders are barely there */
+  --hairline: rgba(0, 0, 0, 0.08);
+  --hairline-strong: rgba(0, 0, 0, 0.14);
+
+  /* Accent (macOS system blue) */
+  --accent: #007aff;
+  --accent-hover: #0070ea;
+  --accent-active: #0063d1;
+  --accent-soft: rgba(0, 122, 255, 0.1);
+  --accent-ink: #ffffff;
+
+  /* Status */
+  --success: #28a745;
+  --success-soft: rgba(40, 167, 69, 0.12);
+  --warning: #c47e07;
+  --warning-soft: rgba(196, 126, 7, 0.12);
+  --danger: #e0352b;
+  --danger-soft: rgba(224, 53, 43, 0.1);
+
+  /* Elevation — key light + ambient, the way macOS layers shadows */
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.12);
+  --shadow-popover: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 12px 32px -8px rgba(0, 0, 0, 0.24),
+    0 4px 8px -4px rgba(0, 0, 0, 0.1);
+  --shadow-modal: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 32px 64px -16px rgba(0, 0, 0, 0.32);
+
+  /* The inner top highlight that makes macOS controls look lit from above */
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --bevel-accent: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+
+  --ring: rgba(0, 122, 255, 0.45);
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #131316;
+  --surface: #1c1c20;
+  --surface-raised: #26262b;
+  --surface-sunken: #0e0e10;
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-active: rgba(255, 255, 255, 0.1);
+
+  --material: rgba(28, 28, 32, 0.72);
+  --material-thick: rgba(28, 28, 32, 0.94);
+
+  --ink: #f2f2f5;
+  --ink-muted: #a0a0aa;
+  --ink-subtle: #6e6e78;
+  --ink-inverted: #131316;
+
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+
+  --accent: #0a84ff;
+  --accent-hover: #2a94ff;
+  --accent-active: #4aa4ff;
+  --accent-soft: rgba(10, 132, 255, 0.16);
+  --accent-ink: #ffffff;
+
+  --success: #32d74b;
+  --success-soft: rgba(50, 215, 75, 0.16);
+  --warning: #ffd60a;
+  --warning-soft: rgba(255, 214, 10, 0.14);
+  --danger: #ff453a;
+  --danger-soft: rgba(255, 69, 58, 0.16);
+
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-popover: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 12px 32px -8px rgba(0, 0, 0, 0.7),
+    0 4px 8px -4px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 32px 64px -16px rgba(0, 0, 0, 0.8);
+
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --bevel-accent: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+  --ring: rgba(10, 132, 255, 0.55);
+}
+
+/* ============================================================================
+   Expose the tokens to Tailwind as utilities.
+   `inline` keeps the var() reference in the generated CSS, so utilities follow
+   the theme at runtime instead of baking in the light value.
+   ========================================================================== */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+
+  --color-material: var(--material);
+  --color-material-thick: var(--material-thick);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-inverted: var(--ink-inverted);
+
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-panel: var(--shadow-panel);
+  --shadow-popover: var(--shadow-popover);
+  --shadow-modal: var(--shadow-modal);
+  --shadow-bevel: var(--bevel);
+  --shadow-bevel-accent: var(--bevel-accent);
+
+  --radius-control: 0.5rem;
+  --radius-panel: 0.875rem;
+  --radius-window: 1.125rem;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* A gentle overshoot — macOS controls settle rather than stop dead */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ============================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  * {
+    border-color: var(--hairline);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" 32;
+  }
+
+  /* Headings get the tight tracking that SF Pro Display uses at large sizes */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Overlay scrollbars, close to the macOS behaviour */
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--hairline-strong);
+    border-radius: 99px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ink-subtle);
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================================================
+   Utilities
+   ========================================================================== */
+@utility material {
+  background-color: var(--material);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+@utility material-thick {
+  background-color: var(--material-thick);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@utility animate-pop-in {
+  animation: pop-in 0.18s var(--ease-spring);
+}
+
+@utility animate-fade-up {
+  animation: fade-up 0.35s var(--ease-out-quint) both;
 }
