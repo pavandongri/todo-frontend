@@ -32,7 +32,9 @@ export function Navbar() {
           <ThemeToggle />
           {/* The session lookup streams in so the rest of the chrome paints
               immediately instead of waiting on the backend. */}
-          <Suspense fallback={<Skeleton className="ml-1 size-7 rounded-full" />}>
+          <Suspense
+            fallback={<Skeleton className="ml-1 size-7 rounded-full" />}
+          >
             <AccountSection />
           </Suspense>
         </div>

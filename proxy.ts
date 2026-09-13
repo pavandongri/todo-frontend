@@ -23,9 +23,7 @@ export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!SESSION_COOKIE) {
-    throw new Error(
-      "SESSION_COOKIE_NAME is not set. See .env.example.",
-    );
+    throw new Error("SESSION_COOKIE_NAME is not set. See .env.example.");
   }
 
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);

@@ -1,0 +1,13 @@
+# Build output and generated files
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Dependencies and lockfiles
+node_modules/
+package-lock.json
+
+# Assets Prettier would only churn
+public/

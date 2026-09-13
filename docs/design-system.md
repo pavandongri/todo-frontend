@@ -11,14 +11,14 @@ choice can override the OS. The `dark:` variant is redefined accordingly.
 
 ## Tokens → Tailwind utilities
 
-| Group | Utility suffixes |
-| --- | --- |
-| Surfaces | `canvas`, `surface`, `surface-raised`, `surface-sunken`, `surface-hover`, `surface-active` |
-| Translucent | `material`, `material-thick` (also standalone utilities that add the blur) |
-| Text | `ink`, `ink-muted`, `ink-subtle`, `ink-inverted` |
-| Borders | `hairline`, `hairline-strong` |
-| Accent | `accent`, `accent-hover`, `accent-active`, `accent-soft`, `accent-ink` |
-| Status | `success`, `success-soft`, `warning`, `warning-soft`, `danger`, `danger-soft` |
+| Group       | Utility suffixes                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| Surfaces    | `canvas`, `surface`, `surface-raised`, `surface-sunken`, `surface-hover`, `surface-active` |
+| Translucent | `material`, `material-thick` (also standalone utilities that add the blur)                 |
+| Text        | `ink`, `ink-muted`, `ink-subtle`, `ink-inverted`                                           |
+| Borders     | `hairline`, `hairline-strong`                                                              |
+| Accent      | `accent`, `accent-hover`, `accent-active`, `accent-soft`, `accent-ink`                     |
+| Status      | `success`, `success-soft`, `warning`, `warning-soft`, `danger`, `danger-soft`              |
 
 Use as `bg-surface`, `text-ink-muted`, `border-hairline`, `bg-accent-soft`, etc.
 
@@ -40,18 +40,18 @@ Entrance utilities: `animate-fade-up`, `animate-pop-in`. Stagger with
 All are Server Components unless marked **client**. All accept `className`, merged
 through `cn()` (`clsx` + `tailwind-merge`, so later utilities win).
 
-| Component | API |
-| --- | --- |
-| `Button` | `variant`: `primary` \| `secondary` \| `ghost` \| `danger` \| `subtle` (default `secondary`); `size`: `sm` \| `md` \| `lg` \| `icon` (default `md`); `loading` — swaps in a `Spinner` while keeping the label in flow so the width doesn't jump |
-| `Input` | `invalid?: boolean` → sets `aria-invalid` and the danger border/ring |
-| `Field` | `label`, `htmlFor`, `error?: string[]`, `hint?` — renders the label, children, and inline errors wired for screen readers |
-| `Card` | plus `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
-| `Badge` | `tone`: `neutral` \| `accent` \| `success` \| `warning` \| `danger` |
-| `Avatar` | `name`, `size` (px, default 32) — initials fallback |
-| `Checkbox` | **client** |
-| `SegmentedControl<T extends string>` | **client** — the todo filter control |
-| `DropdownMenu` | **client** — plus `DropdownMenuItem`, `DropdownMenuLink`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `useDropdownMenu()` |
-| `Spinner`, `Skeleton` | presentational |
+| Component                            | API                                                                                                                                                                                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                             | `variant`: `primary` \| `secondary` \| `ghost` \| `danger` \| `subtle` (default `secondary`); `size`: `sm` \| `md` \| `lg` \| `icon` (default `md`); `loading` — swaps in a `Spinner` while keeping the label in flow so the width doesn't jump |
+| `Input`                              | `invalid?: boolean` → sets `aria-invalid` and the danger border/ring                                                                                                                                                                            |
+| `Field`                              | `label`, `htmlFor`, `error?: string[]`, `hint?` — renders the label, children, and inline errors wired for screen readers                                                                                                                       |
+| `Card`                               | plus `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`                                                                                                                                                                  |
+| `Badge`                              | `tone`: `neutral` \| `accent` \| `success` \| `warning` \| `danger`                                                                                                                                                                             |
+| `Avatar`                             | `name`, `size` (px, default 32) — initials fallback                                                                                                                                                                                             |
+| `Checkbox`                           | **client**                                                                                                                                                                                                                                      |
+| `SegmentedControl<T extends string>` | **client** — the todo filter control                                                                                                                                                                                                            |
+| `DropdownMenu`                       | **client** — plus `DropdownMenuItem`, `DropdownMenuLink`, `DropdownMenuLabel`, `DropdownMenuSeparator`, `useDropdownMenu()`                                                                                                                     |
+| `Spinner`, `Skeleton`                | presentational                                                                                                                                                                                                                                  |
 
 `components/auth/form-banner.tsx` — `FormBanner({ tone: "danger" | "accent" })`,
 the form-level error banner used by both auth forms and the todo board.

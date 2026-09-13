@@ -32,7 +32,8 @@ npm run dev                         # http://localhost:3000
 ```bash
 npm run build
 npm start
-npm run lint
+npm run lint          # eslint (--fix via npm run lint:fix)
+npm run format        # prettier --write .  (check only: npm run format:check)
 ```
 
 ## Configuration
@@ -81,16 +82,16 @@ origin rather than the backend.
 Every operation maps to one `operationId` in
 `demo-backend/openapi/openapi.yaml`:
 
-| API operation | Frontend |
-| --- | --- |
-| `POST /api/auth/register` | `signupRequest` |
-| `POST /api/auth/login` | `loginRequest` |
-| `POST /api/auth/logout` | `logoutRequest` |
-| `GET /api/auth/me` | `fetchCurrentUser` → `lib/dal.ts` |
-| `GET /api/todos` | `listTodos` |
-| `POST /api/todos` | `createTodo` |
-| `PATCH /api/todos/{id}` | `updateTodo` |
-| `DELETE /api/todos/{id}` | `deleteTodo` |
+| API operation             | Frontend                          |
+| ------------------------- | --------------------------------- |
+| `POST /api/auth/register` | `signupRequest`                   |
+| `POST /api/auth/login`    | `loginRequest`                    |
+| `POST /api/auth/logout`   | `logoutRequest`                   |
+| `GET /api/auth/me`        | `fetchCurrentUser` → `lib/dal.ts` |
+| `GET /api/todos`          | `listTodos`                       |
+| `POST /api/todos`         | `createTodo`                      |
+| `PATCH /api/todos/{id}`   | `updateTodo`                      |
+| `DELETE /api/todos/{id}`  | `deleteTodo`                      |
 
 `lib/types.ts` mirrors the spec's `User` and `Todo` schemas. If the spec
 changes, start there.

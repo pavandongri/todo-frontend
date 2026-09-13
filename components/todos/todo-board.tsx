@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useOptimistic, useRef, useState, useTransition } from "react";
+import {
+  useActionState,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   addTodo,
   clearCompleted,
@@ -138,7 +144,11 @@ export function TodoBoard({
   const completed = optimisticTodos.filter((todo) => todo.completed);
 
   const visible =
-    filter === "active" ? active : filter === "completed" ? completed : optimisticTodos;
+    filter === "active"
+      ? active
+      : filter === "completed"
+        ? completed
+        : optimisticTodos;
 
   const progress =
     optimisticTodos.length === 0
@@ -157,7 +167,12 @@ export function TodoBoard({
         )}
       >
         <span className="grid size-9 shrink-0 place-items-center text-ink-subtle">
-          <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            className="size-[18px]"
+            aria-hidden="true"
+          >
             <path
               d="M10 4.2v11.6M4.2 10h11.6"
               stroke="currentColor"
@@ -249,14 +264,19 @@ export function TodoBoard({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className="text-xs tabular-nums text-ink-subtle">{progress}%</span>
+          <span className="text-xs tabular-nums text-ink-subtle">
+            {progress}%
+          </span>
         </div>
       </div>
 
       {/* List */}
       <div className="overflow-hidden rounded-panel border border-hairline bg-surface shadow-panel">
         {visible.length === 0 ? (
-          <EmptyState filter={filter} onCompose={() => inputRef.current?.focus()} />
+          <EmptyState
+            filter={filter}
+            onCompose={() => inputRef.current?.focus()}
+          />
         ) : (
           <ul className="divide-y divide-hairline">
             {visible.map((todo) => (
@@ -275,7 +295,9 @@ export function TodoBoard({
                   )
                 }
                 onDelete={() =>
-                  mutate({ type: "delete", id: todo.id }, () => removeTodo(todo.id))
+                  mutate({ type: "delete", id: todo.id }, () =>
+                    removeTodo(todo.id),
+                  )
                 }
               />
             ))}
@@ -347,7 +369,12 @@ function EmptyState({
       <p className="text-sm font-medium text-ink">{copy.title}</p>
       <p className="max-w-xs text-[13px] text-ink-muted">{copy.body}</p>
       {filter === "all" && (
-        <Button variant="secondary" size="sm" onClick={onCompose} className="mt-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onCompose}
+          className="mt-3"
+        >
           Add a task
         </Button>
       )}

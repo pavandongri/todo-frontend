@@ -32,7 +32,12 @@ export function PasswordInput({ className, ...props }: InputProps) {
 
 function EyeIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-[17px]" aria-hidden="true">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className="size-[17px]"
+      aria-hidden="true"
+    >
       <path
         d="M2.2 10S5 4.8 10 4.8 17.8 10 17.8 10 15 15.2 10 15.2 2.2 10 2.2 10Z"
         stroke="currentColor"
@@ -46,7 +51,12 @@ function EyeIcon() {
 
 function EyeOffIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-[17px]" aria-hidden="true">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className="size-[17px]"
+      aria-hidden="true"
+    >
       <path
         d="M7.9 5.2A7.6 7.6 0 0 1 10 4.8c5 0 7.8 5.2 7.8 5.2a14 14 0 0 1-2.4 3.1M5 6.6A14.3 14.3 0 0 0 2.2 10S5 15.2 10 15.2c.9 0 1.7-.2 2.4-.4M3 3l14 14"
         stroke="currentColor"

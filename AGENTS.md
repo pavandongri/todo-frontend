@@ -19,29 +19,34 @@ the `demo-backend` Todo API over an httpOnly session cookie.
 ## Commands
 
 ```bash
-npm run dev     # :3000  (backend must be running on :5000)
+npm run dev          # :3000  (backend must be running on :5000)
 npm run build
-npm run lint    # eslint, flat config
+npm run lint         # eslint, flat config
+npm run lint:fix
+npm run format       # prettier --write .
+npm run format:check
 ```
+
 No test suite. `npx tsc --noEmit` for a type check.
+`eslint-config-prettier` is applied last, so lint and format never disagree.
 
 Requires `.env` with `API_BASE_URL` and `SESSION_COOKIE_NAME` (copy `.env.example`).
 Both are required; the server exits at start-up if either is missing.
 
 ## Where things live
 
-| Path | What it owns |
-| --- | --- |
-| `app/` | Routes. `(auth)/` login+signup, `todos/` the app, `page.tsx` marketing |
-| `app/actions/` | `"use server"` — the only mutation entry points |
-| `components/ui/` | Design-system primitives (Button, Input, Card, Field…) |
-| `components/auth/`, `components/todos/` | Feature components |
-| `lib/api/` | `client.ts` is the **only** place that calls `fetch` |
-| `lib/dal.ts` | Session reads + authorization (`getCurrentUser`, `requireUser`) |
-| `lib/env.ts` | Required env vars, validated once |
-| `lib/validation.ts` | zod schemas mirroring the API's request schemas |
-| `app/globals.css` | Every colour/shadow/radius token, light + dark |
-| `proxy.ts` | Optimistic cookie-presence route guard (Next 16 renamed `middleware`) |
+| Path                                    | What it owns                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------- |
+| `app/`                                  | Routes. `(auth)/` login+signup, `todos/` the app, `page.tsx` marketing |
+| `app/actions/`                          | `"use server"` — the only mutation entry points                        |
+| `components/ui/`                        | Design-system primitives (Button, Input, Card, Field…)                 |
+| `components/auth/`, `components/todos/` | Feature components                                                     |
+| `lib/api/`                              | `client.ts` is the **only** place that calls `fetch`                   |
+| `lib/dal.ts`                            | Session reads + authorization (`getCurrentUser`, `requireUser`)        |
+| `lib/env.ts`                            | Required env vars, validated once                                      |
+| `lib/validation.ts`                     | zod schemas mirroring the API's request schemas                        |
+| `app/globals.css`                       | Every colour/shadow/radius token, light + dark                         |
+| `proxy.ts`                              | Optimistic cookie-presence route guard (Next 16 renamed `middleware`)  |
 
 ## Non-negotiables
 

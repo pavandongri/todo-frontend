@@ -34,7 +34,9 @@ export function SegmentedControl<T extends string>({
         "border border-hairline bg-surface-sunken",
         className,
       )}
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      style={{
+        gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
+      }}
     >
       <span
         aria-hidden="true"

@@ -27,7 +27,9 @@ export function LoginForm() {
           defaultValue={state?.values?.email ?? ""}
           required
           invalid={Boolean(state?.fieldErrors?.email)}
-          aria-describedby={state?.fieldErrors?.email ? "email-error" : undefined}
+          aria-describedby={
+            state?.fieldErrors?.email ? "email-error" : undefined
+          }
         />
       </Field>
 
@@ -52,7 +54,6 @@ export function LoginForm() {
       <Button type="submit" variant="primary" size="lg" loading={pending}>
         Sign in
       </Button>
-
 
       <p className="text-center text-[13px] text-ink-muted">
         New here?{" "}

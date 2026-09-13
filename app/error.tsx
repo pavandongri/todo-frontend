@@ -31,7 +31,13 @@ export default function Error({
               strokeWidth="1.75"
               strokeLinecap="round"
             />
-            <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5" />
+            <circle
+              cx="10"
+              cy="10"
+              r="7"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
           </svg>
         </span>
 

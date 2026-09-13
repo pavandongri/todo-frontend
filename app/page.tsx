@@ -110,9 +110,21 @@ export default async function HomePage() {
 /** A still-life of the app, rendered from the same tokens as the real UI. */
 function WindowPreview() {
   const rows = [
-    { title: "Review the Q3 design system audit", done: false, tone: "bg-danger" },
-    { title: "Ship the onboarding empty states", done: false, tone: "bg-accent" },
-    { title: "Reply to the vendor questionnaire", done: true, tone: "bg-ink-subtle" },
+    {
+      title: "Review the Q3 design system audit",
+      done: false,
+      tone: "bg-danger",
+    },
+    {
+      title: "Ship the onboarding empty states",
+      done: false,
+      tone: "bg-accent",
+    },
+    {
+      title: "Reply to the vendor questionnaire",
+      done: true,
+      tone: "bg-ink-subtle",
+    },
   ];
 
   return (
@@ -159,7 +171,10 @@ function WindowPreview() {
             >
               {row.title}
             </span>
-            <span className={cn("size-1.5 rounded-full", row.tone)} aria-hidden="true" />
+            <span
+              className={cn("size-1.5 rounded-full", row.tone)}
+              aria-hidden="true"
+            />
           </li>
         ))}
       </ul>
@@ -172,7 +187,12 @@ const FEATURES = [
     title: "Capture in a keystroke",
     body: "The composer is always the first thing in reach. Type, press enter, move on.",
     icon: (
-      <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
+      <svg
+        viewBox="0 0 20 20"
+        fill="none"
+        className="size-[18px]"
+        aria-hidden="true"
+      >
         <path
           d="M10 4.2v11.6M4.2 10h11.6"
           stroke="currentColor"
@@ -186,8 +206,19 @@ const FEATURES = [
     title: "Light and dark, properly",
     body: "One token set drives both themes, applied before the first paint — no flash.",
     icon: (
-      <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
-        <circle cx="10" cy="10" r="6.2" stroke="currentColor" strokeWidth="1.5" />
+      <svg
+        viewBox="0 0 20 20"
+        fill="none"
+        className="size-[18px]"
+        aria-hidden="true"
+      >
+        <circle
+          cx="10"
+          cy="10"
+          r="6.2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
         <path d="M10 3.8v12.4a6.2 6.2 0 0 0 0-12.4Z" fill="currentColor" />
       </svg>
     ),
@@ -196,7 +227,12 @@ const FEATURES = [
     title: "Instant by default",
     body: "Changes land in the UI the moment you make them, then settle with the server.",
     icon: (
-      <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
+      <svg
+        viewBox="0 0 20 20"
+        fill="none"
+        className="size-[18px]"
+        aria-hidden="true"
+      >
         <path
           d="M11 2.5 4.5 11h4l-.5 6.5L15.5 9h-4l-.5-6.5Z"
           stroke="currentColor"

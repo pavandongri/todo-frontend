@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import prettier from "eslint-config-prettier/flat";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -21,7 +22,11 @@ const eslintConfig = defineConfig([
     // envelope and `ApiError` handling are applied consistently. A stray
     // `fetch` elsewhere bypasses all three — and from a Client Component it
     // would hit this app's own origin rather than the backend.
-    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],
+    files: [
+      "app/**/*.{ts,tsx}",
+      "components/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+    ],
     ignores: ["lib/api/**"],
     rules: {
       "no-restricted-globals": [
@@ -34,6 +39,9 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // Last: turns off the stylistic rules Prettier owns, so `npm run lint` and
+  // `npm run format` can never disagree about the same line.
+  prettier,
 ]);
 
 export default eslintConfig;

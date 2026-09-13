@@ -39,7 +39,9 @@ export function SignupForm() {
           defaultValue={state?.values?.email ?? ""}
           required
           invalid={Boolean(state?.fieldErrors?.email)}
-          aria-describedby={state?.fieldErrors?.email ? "email-error" : undefined}
+          aria-describedby={
+            state?.fieldErrors?.email ? "email-error" : undefined
+          }
         />
       </Field>
 

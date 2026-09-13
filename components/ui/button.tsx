@@ -56,10 +56,7 @@ export function Button({
     >
       {/* Keep the label in flow while loading so the button doesn't resize. */}
       <span
-        className={cn(
-          "inline-flex items-center gap-2",
-          loading && "invisible",
-        )}
+        className={cn("inline-flex items-center gap-2", loading && "invisible")}
       >
         {children}
       </span>

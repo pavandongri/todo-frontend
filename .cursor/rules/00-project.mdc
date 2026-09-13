@@ -13,8 +13,9 @@ Assume Next 16 differs from what you remember. `middleware` is now `proxy`,
 `docs/next-16.md` before using a framework API.
 
 ## Commands
-`npm run dev` (:3000, backend on :5000) · `npm run build` · `npm run lint` ·
-`npx tsc --noEmit`. No test suite. `.env` needs `API_BASE_URL` and
+`npm run dev` (:3000, backend on :5000) · `npm run build` · `npm run lint`
+(`lint:fix`) · `npm run format` (`format:check`, prettier) · `npx tsc --noEmit`.
+No test suite. `.env` needs `API_BASE_URL` and
 `SESSION_COOKIE_NAME`; the server exits at start-up if either is missing.
 
 ## Always

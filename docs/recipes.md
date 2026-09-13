@@ -14,16 +14,16 @@ one lists the files in the order they should be edited.
   `UNAUTHORIZED` and `INVALID_SESSION`.
 - Every response carries `x-request-id`, preserved as `ApiError.requestId`.
 
-| Endpoint | Function in `lib/api/` |
-| --- | --- |
-| `POST /api/auth/register` | `signupRequest` (also signs in) |
-| `POST /api/auth/login` | `loginRequest` |
-| `POST /api/auth/logout` | `logoutRequest` (204 even with no session) |
-| `GET /api/auth/me` | `fetchCurrentUser` → use via `lib/dal.ts` |
-| `GET /api/todos` | `listTodos` (paginates, 100/page) |
-| `POST /api/todos` | `createTodo` |
-| `PATCH /api/todos/{id}` | `updateTodo` (422 on an empty patch) |
-| `DELETE /api/todos/{id}` | `deleteTodo` |
+| Endpoint                  | Function in `lib/api/`                     |
+| ------------------------- | ------------------------------------------ |
+| `POST /api/auth/register` | `signupRequest` (also signs in)            |
+| `POST /api/auth/login`    | `loginRequest`                             |
+| `POST /api/auth/logout`   | `logoutRequest` (204 even with no session) |
+| `GET /api/auth/me`        | `fetchCurrentUser` → use via `lib/dal.ts`  |
+| `GET /api/todos`          | `listTodos` (paginates, 100/page)          |
+| `POST /api/todos`         | `createTodo`                               |
+| `PATCH /api/todos/{id}`   | `updateTodo` (422 on an empty patch)       |
+| `DELETE /api/todos/{id}`  | `deleteTodo`                               |
 
 Source of truth: `demo-backend/openapi/openapi.yaml`. Mirror changes into
 `lib/types.ts` and `lib/validation.ts`.
@@ -51,6 +51,7 @@ export async function archiveTodo(id: string): Promise<MutationResult> {
   }, "We couldn't archive that task.");
 }
 ```
+
 `run()` already does `requireUser()`, `ApiError` → message, and
 `revalidatePath("/todos")`. **Return** failures; do not throw — an exception
 escaping an action called inside a transition takes the route down.
@@ -72,12 +73,19 @@ const [state, formAction, pending] = useActionState(login, null);
 <form action={formAction}>
   {state?.message && <FormBanner>{state.message}</FormBanner>}
   <Field label="Email" htmlFor="email" error={state?.fieldErrors?.email}>
-    <Input id="email" name="email" defaultValue={state?.values?.email}
-           invalid={!!state?.fieldErrors?.email} />
+    <Input
+      id="email"
+      name="email"
+      defaultValue={state?.values?.email}
+      invalid={!!state?.fieldErrors?.email}
+    />
   </Field>
-  <Button type="submit" variant="primary" size="lg" loading={pending}>Sign in</Button>
-</form>
+  <Button type="submit" variant="primary" size="lg" loading={pending}>
+    Sign in
+  </Button>
+</form>;
 ```
+
 Never echo a password back.
 
 ## Add a route
@@ -93,6 +101,7 @@ Never echo a password back.
 ## Add an optimistic interaction
 
 The board's pattern, in `components/todos/todo-board.tsx`:
+
 - `useOptimistic(todos, reduce)` with a discriminated-union action and a pure reducer.
 - Client-minted ids use the `optimistic-` prefix. **They must never reach the
   API** — it only accepts UUIDs. `isPending()` gates a row's controls until the

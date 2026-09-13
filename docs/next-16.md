@@ -6,23 +6,23 @@ is bundled at `node_modules/next/dist/docs/`.
 
 ## Applies to this codebase
 
-| Thing | Next 16 |
-| --- | --- |
-| `middleware.ts` | **Renamed to `proxy.ts`**, exporting a `proxy` function. Runtime is `nodejs` and cannot be configured — no edge. `export const config = { matcher }` is unchanged. |
-| `cookies()`, `headers()`, `draftMode()` | **Async only.** The sync compatibility shim from 15 is gone: `await cookies()`. |
-| `params`, `searchParams` | **Promises** in `page.tsx`, `layout.tsx`, `route.ts`, `default.tsx`, and the metadata image files. `await props.params`. |
-| Page/layout prop types | Generated global helpers: `PageProps<'/blog/[slug]'>`, `LayoutProps<'/'>`, `RouteContext<'/api/x'>`. `app/layout.tsx` already uses `LayoutProps<"/">`. Regenerate with `npx next typegen`. |
-| `revalidateTag` | Now requires a second argument, a `cacheLife` profile: `revalidateTag('todos', 'max')`. The one-arg form is a type error. |
-| `revalidatePath` | **Unchanged** — `revalidatePath('/todos')` is still correct. This is what the repo uses. |
-| `updateTag(tag)` | New, Server-Actions-only, read-your-writes: expires *and* refreshes in the same request. Prefer over `revalidateTag` when the user must see their own change immediately. |
-| `refresh()` | New, from `next/cache`: refreshes the client router from a Server Action. |
-| `cacheLife` / `cacheTag` | Stable — drop the `unstable_` prefix. |
-| Bundler | **Turbopack is the default** for `dev` and `build`. |
-| `next lint` | **Removed.** `npm run lint` runs `eslint` directly against the flat config. |
-| ESLint | Flat config only (`eslint.config.mjs`), `eslint-config-next/core-web-vitals` + `/typescript`. |
-| `experimental.dynamicIO` / `useCache` | Removed; superseded by `cacheComponents`. |
-| `unstable_rootParams` | Removed. |
-| AMP, `next/legacy/image`, `images.domains`, runtime config | Removed or deprecated. |
+| Thing                                                      | Next 16                                                                                                                                                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `middleware.ts`                                            | **Renamed to `proxy.ts`**, exporting a `proxy` function. Runtime is `nodejs` and cannot be configured — no edge. `export const config = { matcher }` is unchanged.                         |
+| `cookies()`, `headers()`, `draftMode()`                    | **Async only.** The sync compatibility shim from 15 is gone: `await cookies()`.                                                                                                            |
+| `params`, `searchParams`                                   | **Promises** in `page.tsx`, `layout.tsx`, `route.ts`, `default.tsx`, and the metadata image files. `await props.params`.                                                                   |
+| Page/layout prop types                                     | Generated global helpers: `PageProps<'/blog/[slug]'>`, `LayoutProps<'/'>`, `RouteContext<'/api/x'>`. `app/layout.tsx` already uses `LayoutProps<"/">`. Regenerate with `npx next typegen`. |
+| `revalidateTag`                                            | Now requires a second argument, a `cacheLife` profile: `revalidateTag('todos', 'max')`. The one-arg form is a type error.                                                                  |
+| `revalidatePath`                                           | **Unchanged** — `revalidatePath('/todos')` is still correct. This is what the repo uses.                                                                                                   |
+| `updateTag(tag)`                                           | New, Server-Actions-only, read-your-writes: expires _and_ refreshes in the same request. Prefer over `revalidateTag` when the user must see their own change immediately.                  |
+| `refresh()`                                                | New, from `next/cache`: refreshes the client router from a Server Action.                                                                                                                  |
+| `cacheLife` / `cacheTag`                                   | Stable — drop the `unstable_` prefix.                                                                                                                                                      |
+| Bundler                                                    | **Turbopack is the default** for `dev` and `build`.                                                                                                                                        |
+| `next lint`                                                | **Removed.** `npm run lint` runs `eslint` directly against the flat config.                                                                                                                |
+| ESLint                                                     | Flat config only (`eslint.config.mjs`), `eslint-config-next/core-web-vitals` + `/typescript`.                                                                                              |
+| `experimental.dynamicIO` / `useCache`                      | Removed; superseded by `cacheComponents`.                                                                                                                                                  |
+| `unstable_rootParams`                                      | Removed.                                                                                                                                                                                   |
+| AMP, `next/legacy/image`, `images.domains`, runtime config | Removed or deprecated.                                                                                                                                                                     |
 
 Not used here but worth knowing: PPR, `next/image` default changes
 (`minimumCacheTTL`, `imageSizes`, `qualities`, local-IP restriction), parallel

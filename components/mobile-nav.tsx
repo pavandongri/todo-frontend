@@ -42,7 +42,12 @@ export function MobileNav({ items }: { items: NavItem[] }) {
           open && "bg-surface-active text-ink",
         )}
       >
-        <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
+        <svg
+          viewBox="0 0 20 20"
+          fill="none"
+          className="size-[18px]"
+          aria-hidden="true"
+        >
           <path
             d="M3.5 6h13M3.5 10h13M3.5 14h13"
             stroke="currentColor"

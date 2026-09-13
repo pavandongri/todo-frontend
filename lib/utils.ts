@@ -11,13 +11,26 @@ export function cn(...inputs: ClassValue[]) {
  * The API allows `name` to be null, so fall back to the email's local part
  * rather than rendering an empty string or "null".
  */
-export function displayName(user: { name: string | null; email: string }): string {
+export function displayName(user: {
+  name: string | null;
+  email: string;
+}): string {
   return user.name?.trim() || user.email.split("@")[0];
 }
 
 const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 /**

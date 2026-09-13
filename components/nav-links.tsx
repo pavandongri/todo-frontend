@@ -19,9 +19,7 @@ export function NavLinks({
     <nav className={cn("flex items-center gap-1", className)}>
       {items.map((item) => {
         const active =
-          item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
+          item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
         return (
           <Link

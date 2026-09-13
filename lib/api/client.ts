@@ -297,7 +297,11 @@ function parseSetCookie(
         break;
       case "samesite": {
         const sameSite = attrValue.toLowerCase();
-        if (sameSite === "lax" || sameSite === "strict" || sameSite === "none") {
+        if (
+          sameSite === "lax" ||
+          sameSite === "strict" ||
+          sameSite === "none"
+        ) {
           options.sameSite = sameSite;
         }
         break;

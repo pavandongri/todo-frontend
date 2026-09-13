@@ -59,7 +59,9 @@ export function serverEnv(): ServerEnv {
   });
 
   if (!parsed.success) {
-    throw new EnvironmentError(formatIssues(z.flattenError(parsed.error).fieldErrors));
+    throw new EnvironmentError(
+      formatIssues(z.flattenError(parsed.error).fieldErrors),
+    );
   }
 
   const apiBaseUrl = parsed.data.API_BASE_URL.replace(/\/$/, "");
@@ -115,7 +117,8 @@ function formatIssues(fieldErrors: Record<string, string[] | undefined>) {
   const lines = Object.entries(fieldErrors)
     .filter(([, messages]) => messages?.length)
     .map(([key, messages]) => {
-      const reason = process.env[key] === undefined ? "is not set" : messages![0];
+      const reason =
+        process.env[key] === undefined ? "is not set" : messages![0];
       return `  ${key.padEnd(width)}  ${reason}`;
     });
 

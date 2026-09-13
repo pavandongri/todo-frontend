@@ -106,7 +106,9 @@ export function TodoItem({
           className={cn(
             "mt-px shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums",
             "transition-opacity duration-200",
-            overdue ? "bg-danger-soft text-danger" : "bg-surface-hover text-ink-muted",
+            overdue
+              ? "bg-danger-soft text-danger"
+              : "bg-surface-hover text-ink-muted",
             todo.completed && "opacity-45",
           )}
           title={overdue ? "Overdue" : "Due date"}
@@ -123,26 +125,31 @@ export function TodoItem({
           <Spinner className="size-3.5" />
         </span>
       ) : (
-      <button
-        type="button"
-        onClick={onDelete}
-        aria-label={`Delete "${todo.title}"`}
-        className={cn(
-          "grid size-6 shrink-0 place-items-center rounded-[6px] text-ink-subtle opacity-0",
-          "transition-[opacity,background-color,color] duration-150",
-          "hover:bg-danger-soft hover:text-danger focus-visible:opacity-100",
-          "group-hover:opacity-100",
-        )}
-      >
-        <svg viewBox="0 0 16 16" fill="none" className="size-3.5" aria-hidden="true">
-          <path
-            d="M4 4l8 8M12 4l-8 8"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label={`Delete "${todo.title}"`}
+          className={cn(
+            "grid size-6 shrink-0 place-items-center rounded-[6px] text-ink-subtle opacity-0",
+            "transition-[opacity,background-color,color] duration-150",
+            "hover:bg-danger-soft hover:text-danger focus-visible:opacity-100",
+            "group-hover:opacity-100",
+          )}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            className="size-3.5"
+            aria-hidden="true"
+          >
+            <path
+              d="M4 4l8 8M12 4l-8 8"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
       )}
     </li>
   );

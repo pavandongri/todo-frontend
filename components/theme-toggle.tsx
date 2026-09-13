@@ -15,12 +15,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-const OPTIONS: { value: ThemePreference; label: string; icon: React.ReactNode }[] =
-  [
-    { value: "light", label: "Light", icon: <SunIcon /> },
-    { value: "dark", label: "Dark", icon: <MoonIcon /> },
-    { value: "system", label: "System", icon: <SystemIcon /> },
-  ];
+const OPTIONS: {
+  value: ThemePreference;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
+  { value: "light", label: "Light", icon: <SunIcon /> },
+  { value: "dark", label: "Dark", icon: <MoonIcon /> },
+  { value: "system", label: "System", icon: <SystemIcon /> },
+];
 
 export function ThemeToggle() {
   // Lazy initializer reads the value the inline script already resolved, so
@@ -120,7 +123,12 @@ function applyTheme(preference: ThemePreference) {
 
 function SunIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className="size-[18px]"
+      aria-hidden="true"
+    >
       <circle cx="10" cy="10" r="3.6" stroke="currentColor" strokeWidth="1.5" />
       <path
         d="M10 2.2v1.6M10 16.2v1.6M17.8 10h-1.6M3.8 10H2.2M15.5 4.5l-1.1 1.1M5.6 14.4l-1.1 1.1M15.5 15.5l-1.1-1.1M5.6 5.6L4.5 4.5"
@@ -134,7 +142,12 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className="size-[18px]"
+      aria-hidden="true"
+    >
       <path
         d="M16.5 11.8A7 7 0 0 1 8.2 3.5a7 7 0 1 0 8.3 8.3Z"
         stroke="currentColor"
@@ -147,7 +160,12 @@ function MoonIcon() {
 
 function SystemIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-[18px]" aria-hidden="true">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className="size-[18px]"
+      aria-hidden="true"
+    >
       <rect
         x="2.5"
         y="4"
@@ -169,7 +187,12 @@ function SystemIcon() {
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-3.5" aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      className="size-3.5"
+      aria-hidden="true"
+    >
       <path
         d="M3.5 8.5L6.5 11.5L12.5 4.5"
         stroke="currentColor"
