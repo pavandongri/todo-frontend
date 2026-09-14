@@ -18,10 +18,10 @@ const eslintConfig = defineConfig([
     // Keep every HTTP call behind the backend client.
     //
     // The app has no API routes of its own: `lib/api/client.ts` is the single
-    // place that talks to the network, so cookie forwarding, the `data`
-    // envelope and `ApiError` handling are applied consistently. A stray
-    // `fetch` elsewhere bypasses all three — and from a Client Component it
-    // would hit this app's own origin rather than the backend.
+    // place that talks to the network, so the API origin, `credentials:
+    // "include"`, the `data` envelope and `ApiError` handling are applied
+    // consistently. A stray `fetch` elsewhere bypasses all four — and a
+    // relative URL would hit this app's own origin, where nothing is served.
     files: [
       "app/**/*.{ts,tsx}",
       "components/**/*.{ts,tsx}",
@@ -34,7 +34,7 @@ const eslintConfig = defineConfig([
         {
           name: "fetch",
           message:
-            "Call the backend through lib/api (apiRequest/apiData/apiList) instead of fetching directly.",
+            "Call the API through lib/api (apiRequest/apiData/apiList) instead of fetching directly.",
         },
       ],
     },

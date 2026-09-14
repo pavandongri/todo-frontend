@@ -1,15 +1,15 @@
-import { EnvironmentError, serverEnv } from "@/lib/env";
+import { EnvironmentError, publicEnv } from "@/lib/env";
 
 /**
  * Runs once per server instance, before any request is handled.
  *
  * Validating the environment here means a misconfigured deployment fails at
- * start-up with a readable message, instead of booting and erroring on every
- * request that tries to reach the backend.
+ * start-up with a readable message, instead of shipping a client bundle with an
+ * `undefined` API origin baked into it and failing in every visitor's browser.
  */
 export function register() {
   try {
-    serverEnv();
+    publicEnv();
   } catch (error) {
     if (!(error instanceof EnvironmentError)) throw error;
 

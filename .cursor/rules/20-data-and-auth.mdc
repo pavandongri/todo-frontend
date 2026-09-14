@@ -1,25 +1,34 @@
 ---
-description: Backend HTTP client, error handling, session auth and the data access layer
-globs: lib/**/*.ts,app/actions/*.ts
+description: The API client, CORS and cookies, error handling, and client-side session
+globs: lib/**/*.ts,components/auth/*.tsx
 alwaysApply: false
 ---
 
 ## One network boundary
 `lib/api/client.ts` is the **only** file that calls `fetch`. ESLint blocks `fetch`
 in `app/`, `components/` and `lib/` outside `lib/api/`. A stray call would bypass
-cookie forwarding, the `data` envelope and `ApiError` — and from a Client
-Component it would hit this app's origin instead of the backend.
+the API origin, `credentials: "include"`, the `data` envelope and `ApiError` —
+and a relative URL would hit this app's origin, where nothing is served.
 
 - `apiRequest(path, { body, query, ...init })` — JSON-encodes plain objects,
-  forwards the browser's `Cookie` header, `cache: "no-store"`.
+  sets `credentials: "include"` and `cache: "no-store"`, resolves the API origin.
 - `apiData<T>(path, opts)` — unwraps `{ data }`, throws `ApiError`. Returns
   `undefined` for 204.
 - `apiList<T>(path, opts)` — returns `{ data, meta }`.
-- `relaySetCookies(response)` — copies the API's `Set-Cookie` onto our response so
-  the session stays httpOnly end to end. Server Actions / Route Handlers only.
 
-Server-to-server calls mean **CORS never applies**; the backend's `CORS_ORIGIN`
-only matters for browser-originated requests, and this app makes none.
+## Cookies across two origins
+The session cookie is set by the API, on the API's origin, and stays httpOnly —
+nothing in this app can read it, which is the point. Two things make it work:
+
+- **`credentials: "include"`** on every call. These are cross-origin requests, so
+  the browser attaches no cookies unless asked. Without it, everything is 401.
+- **CORS on the API**: it must echo this app's exact origin and send
+  `Access-Control-Allow-Credentials: true`. A wildcard `*` is illegal alongside
+  credentials. Mutations get an `OPTIONS` preflight first — that extra request is
+  correct, not a bug.
+
+Dev is `localhost` on both ports, so `SameSite=Lax` suffices. Two different sites
+in production need `SameSite=None; Secure`, hence HTTPS on both.
 
 ## Errors
 API failures are `{ error: { code, message, details?, requestId } }`.
@@ -28,19 +37,29 @@ leaf field name so inputs render inline), `formErrors` (the API's `(root)`
 issues), and `requestId`.
 
 Branch on `code`, never on `message`. `isUnauthenticated` covers `UNAUTHORIZED`
-and `INVALID_SESSION`. Preserve `requestId` — it maps to the backend logs.
+and `INVALID_SESSION`. `isNetworkFailure` covers `NETWORK_ERROR` (status 0),
+raised locally when `fetch` itself rejects — API down, offline, or CORS blocked
+the response. Preserve `requestId`; it maps to the backend logs.
 
-## Auth
-`lib/dal.ts` is the only place session state is read:
-- `getCurrentUser()` — throws if the API is unreachable.
-- `getCurrentUserSafe()` — degrades to `null`. Use for the navbar and public
-  pages: the navbar renders in the root layout, so an error there escapes past
-  the route's boundary and replaces the whole app. Calls `unstable_rethrow` first.
-- `requireUser()` — redirects to `/login`.
+Map failures to UI with `lib/form-state.ts`: `toActionState` for `useActionState`,
+`toErrorMessage` for a plain banner.
 
-All three are `React.cache`d, so a page and the navbar cost one `/api/auth/me`
-between them. **Never authorize in a layout** — layouts don't re-render on
-navigation.
+## Session
+`components/auth/session.tsx` holds the UI's view of who is signed in:
+- `SessionProvider` — one `/api/auth/me` per page load, kept in context so the
+  navbar and the page share it. Swallows failure and renders signed-out, because
+  it wraps the whole app.
+- `useSession()` — `{ user, loading, setUser }`. Call `setUser` after login,
+  signup and logout so the navbar updates without a reload.
+- `useRequireSession()` — redirects signed-out visitors to `/login?next=…`.
+- `useRedirectWhenSignedIn()` — the reverse, for `/login` and `/signup`.
+
+> **These are UX redirects, not a security boundary.** The API returns 401 to
+> anyone without a session no matter what we render. Never add a client check and
+> treat it as protection.
+
+Validate a `?next=` destination with `safeNextPath` before navigating — the query
+string is attacker-controlled.
 
 ## Types and validation
 `lib/types.ts` mirrors the backend's OpenAPI `User` and `Todo` schemas — start
@@ -49,8 +68,9 @@ identical bounds, so a form never rejects something the API would accept; the AP
 re-validates regardless.
 
 ## Env
-`lib/env.ts` validates `API_BASE_URL` and `SESSION_COOKIE_NAME` with zod. No
-defaults. Validation is lazy and memoised so importing never throws during
+`lib/env.ts` validates `NEXT_PUBLIC_API_BASE_URL` with zod — the only variable,
+and no default. `NEXT_PUBLIC_` compiles it into the client bundle, so it **must
+not be secret**; reference it as that exact literal or the substitution doesn't
+happen. Validation is lazy and memoised so importing never throws during
 `next build`; `instrumentation.ts` calls it at start-up and exits on failure.
-Read config through `serverEnv()`, not `process.env` — except in `proxy.ts`,
-which stays free of shared imports by design.
+Read config through `publicEnv()`, not `process.env`.

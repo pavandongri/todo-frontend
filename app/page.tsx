@@ -1,11 +1,8 @@
-import Link from "next/link";
-import { getCurrentUserSafe } from "@/lib/dal";
 import { Badge } from "@/components/ui/badge";
+import { HomeCta } from "@/components/home-cta";
 import { cn } from "@/lib/utils";
 
-export default async function HomePage() {
-  const user = await getCurrentUserSafe();
-
+export default function HomePage() {
   return (
     <main className="flex-1">
       {/* Hero */}
@@ -39,35 +36,7 @@ export default async function HomePage() {
             midday.
           </p>
 
-          <div className="mt-8 flex animate-fade-up flex-col gap-3 [animation-delay:180ms] sm:flex-row">
-            <Link
-              href={user ? "/todos" : "/signup"}
-              className={cn(
-                "inline-flex h-11 items-center justify-center rounded-[11px] px-6",
-                "bg-accent text-[15px] font-medium text-accent-ink",
-                "shadow-[var(--bevel-accent),var(--shadow-sm)]",
-                "transition-[background-color,transform] duration-150 ease-[var(--ease-spring)]",
-                "hover:bg-accent-hover active:scale-[0.97]",
-              )}
-            >
-              {user ? "Open your tasks" : "Get started — it's free"}
-            </Link>
-
-            {!user && (
-              <Link
-                href="/login"
-                className={cn(
-                  "inline-flex h-11 items-center justify-center rounded-[11px] px-6",
-                  "border border-hairline-strong bg-surface-raised text-[15px] font-medium text-ink",
-                  "shadow-[var(--bevel),var(--shadow-sm)]",
-                  "transition-[background-color,transform] duration-150 ease-[var(--ease-spring)]",
-                  "hover:bg-surface-hover active:scale-[0.97]",
-                )}
-              >
-                Sign in
-              </Link>
-            )}
-          </div>
+          <HomeCta />
         </div>
 
         {/* Product preview */}

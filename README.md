@@ -1,8 +1,8 @@
 # Cadence
 
 A todo app built on Next.js 16 (App Router, Turbopack) with Tailwind CSS v4 and
-a centrally themed light/dark design system. It talks to the Todo API in
-`demo-backend` using that service's httpOnly session cookie.
+a centrally themed light/dark design system. The browser talks **directly** to
+the Todo API in `demo-backend`, using that service's httpOnly session cookie.
 
 ## Working on this codebase
 
@@ -38,29 +38,42 @@ npm run format        # prettier --write .  (check only: npm run format:check)
 
 ## Configuration
 
-Both variables are **required** and have no defaults. Put them in `.env`
-(copy `.env.example`):
+One variable, **required**, with no default. Put it in `.env` (copy
+`.env.example`):
 
 ```bash
-API_BASE_URL="http://localhost:5000"   # the backend's PORT
-SESSION_COOKIE_NAME="todo_session"     # must match the backend's COOKIE_NAME
+NEXT_PUBLIC_API_BASE_URL="http://localhost:5000"   # the backend's PORT
 ```
 
-`instrumentation.ts` validates them in `register()`, which Next.js runs once per
+The `NEXT_PUBLIC_` prefix is load-bearing: the browser makes the API calls, so
+this origin is compiled into the client bundle. Nothing secret can ever live
+here — and this app holds no secrets, because it has no server-side logic to
+hold them.
+
+It is read as a literal `process.env.NEXT_PUBLIC_API_BASE_URL`; Next.js
+substitutes the value at build time by matching that exact text, so a computed
+lookup would come out `undefined` in the browser. Changing `.env` therefore needs
+a `next dev` restart.
+
+`instrumentation.ts` validates it in `register()`, which Next.js runs once per
 server instance before any request is handled. Anything missing or malformed
 prints what's wrong and exits — `next dev` and `next start` both refuse to come
-up rather than booting and failing on every request:
+up rather than shipping a bundle that fails in every visitor's browser:
 
 ```
 Invalid environment configuration:
 
-  SESSION_COOKIE_NAME  is not set
+  NEXT_PUBLIC_API_BASE_URL  is not set
 
 Copy .env.example to .env and fill in the values.
 ```
 
-`API_BASE_URL` is also rejected if it points at this app's own port, which would
-loop requests back into Next.js instead of reaching the backend.
+It is also rejected if it points at this app's own origin, which would send
+requests to a server that has no API routes at all.
+
+**The backend must allow this app's origin.** Set `CORS_ORIGIN=http://localhost:3000`
+in `demo-backend/.env`; the API already answers with
+`Access-Control-Allow-Credentials: true`, which is what makes the cookie work.
 
 Validation is lazy and memoised, so importing `lib/env.ts` never throws and
 `next build` still succeeds on machines with no runtime configuration.
@@ -71,45 +84,69 @@ There are no seeded accounts — register through the UI.
 
 ## How the integration is wired
 
-This app has **no API routes of its own**. Every HTTP call goes to the backend
-through `lib/api/client.ts`, which is the single place that touches the network —
-so cookie forwarding, the `data` envelope and `ApiError` handling are applied
-uniformly. An ESLint rule (`no-restricted-globals` on `fetch`, scoped to `app/`,
-`components/` and `lib/` outside `lib/api/`) keeps it that way; a stray `fetch`
-would bypass all three, and from a Client Component it would hit this app's
-origin rather than the backend.
+Every API request is made **by the browser, straight to the API**:
+
+```
+browser ──────────────────► demo-backend :5000     ← every /api/* call
+   │
+   └── Next.js :3000 serves HTML, JS and CSS. That is all it does.
+```
+
+Open the Network panel and every `/api/*` row shows the API's origin. Next.js
+never appears in that path — there is no `browser → Next.js → API` hop, no API
+routes, no Server Actions, no server-side session.
+
+Why: the hop bought nothing here. It doubled the latency of every mutation, hid
+the real requests from the Network panel, and made a pure frontend behave like a
+backend-for-frontend without any of the reasons to be one. The cost of removing
+it is that the Next.js server can no longer render user data — see
+"Where authorization happens".
+
+Every HTTP call goes through `lib/api/client.ts`, the single place that touches
+the network, so the API origin, `credentials: "include"`, the `data` envelope and
+`ApiError` handling are applied uniformly. An ESLint rule
+(`no-restricted-globals` on `fetch`, scoped to `app/`, `components/` and `lib/`
+outside `lib/api/`) keeps it that way; a stray `fetch` would bypass all four, and
+a relative URL would hit this app's origin, where nothing is served.
 
 Every operation maps to one `operationId` in
 `demo-backend/openapi/openapi.yaml`:
 
-| API operation             | Frontend                          |
-| ------------------------- | --------------------------------- |
-| `POST /api/auth/register` | `signupRequest`                   |
-| `POST /api/auth/login`    | `loginRequest`                    |
-| `POST /api/auth/logout`   | `logoutRequest`                   |
-| `GET /api/auth/me`        | `fetchCurrentUser` → `lib/dal.ts` |
-| `GET /api/todos`          | `listTodos`                       |
-| `POST /api/todos`         | `createTodo`                      |
-| `PATCH /api/todos/{id}`   | `updateTodo`                      |
-| `DELETE /api/todos/{id}`  | `deleteTodo`                      |
+| API operation             | Frontend                            |
+| ------------------------- | ----------------------------------- |
+| `POST /api/auth/register` | `signupRequest`                     |
+| `POST /api/auth/login`    | `loginRequest`                      |
+| `POST /api/auth/logout`   | `logoutRequest`                     |
+| `GET /api/auth/me`        | `fetchCurrentUser` → `useSession()` |
+| `GET /api/todos`          | `listTodos`                         |
+| `POST /api/todos`         | `createTodo`                        |
+| `PATCH /api/todos/{id}`   | `updateTodo`                        |
+| `DELETE /api/todos/{id}`  | `deleteTodo`                        |
 
 `lib/types.ts` mirrors the spec's `User` and `Todo` schemas. If the spec
 changes, start there.
 
-### Cookie auth across two servers
+### Cookie auth across two origins
 
-Server-side `fetch` sends no cookies of its own, so `lib/api/client.ts` does two
-things that make the session work end to end:
+The session cookie is set by the API, on the API's origin, and stays httpOnly —
+no token ever passes through JavaScript. Two things make that work from the
+browser:
 
-- **`apiRequest`** forwards the browser's `Cookie` header upstream on every call.
-- **`relaySetCookies`** copies the API's `Set-Cookie` headers onto our own
-  response, so the cookie stays httpOnly the whole way and no token ever passes
-  through client-side JavaScript.
+- **`credentials: "include"`** on every call. These are cross-origin requests, so
+  the browser attaches no cookies unless asked. Without it everything is 401.
+- **CORS on the API.** It must echo this app's exact origin and send
+  `Access-Control-Allow-Credentials: true` — a wildcard `*` is illegal alongside
+  credentials. Mutations are preceded by an `OPTIONS` preflight; that extra row in
+  the Network panel is correct, not a bug.
 
-Because every call is server-to-server, CORS never applies — the backend's
-`CORS_ORIGIN` allowlist only matters for requests made from the browser, and
-this app makes none. (It is currently set to `http://localhost:5173`; that only
-needs changing if you ever call the API directly from client-side code.)
+Nothing in this app can read the cookie, which is the point. It also means there
+is no `SESSION_COOKIE_NAME` to configure any more: knowing the name would buy
+nothing when the browser handles the cookie for us.
+
+In development both origins are `localhost`, so `SameSite=Lax` is enough. Across
+two genuinely different sites in production the API must issue the cookie as
+`SameSite=None; Secure`, which requires HTTPS on both — the backend already does
+this when `NODE_ENV=production`.
 
 ### Errors
 
@@ -126,22 +163,29 @@ carries all of it:
 
 ### Where authorization happens
 
-`proxy.ts` (Next.js 16 renamed `middleware` → `proxy`) does an **optimistic**
-check only: is a session cookie present? It deliberately makes no API call,
-because proxy runs on every request including prefetches.
+**In the API, and nowhere else.** Every `/api/todos` request without a valid
+session cookie comes back 401 regardless of what this app renders.
 
-The real check lives in `lib/dal.ts` — `getCurrentUser()` and `requireUser()`,
-both wrapped in React `cache` so a page and the navbar cost one `/api/auth/me`
-between them. Pages and Server Actions call the DAL, never the layout, because
-layouts don't re-render on navigation and can't reliably gate anything.
+`components/auth/session.tsx` holds the UI's view of that: one `/api/auth/me` per
+page load, kept in context so the navbar and the page share it. `useRequireSession()`
+redirects a signed-out visitor to `/login`, and `useRedirectWhenSignedIn()` does
+the reverse on `/login` and `/signup`.
 
-> **Don't add a "signed-in users can't see /login" redirect to `proxy.ts`.**
-> A cookie can outlive the session it points at — expired, revoked, or a
-> restarted server. Redirecting on mere cookie presence fights the authoritative
-> check in the page: `/login` sends you to `/todos`, `/todos` finds the session
-> invalid and sends you back, and the user is locked out of the sign-in form by
-> an infinite loop. `/login` and `/signup` call `getCurrentUser()` themselves,
-> which validates the session and handles that case correctly.
+> **These are UX redirects, not a security boundary.** Anyone can edit client
+> state or call the API themselves. That is fine — nothing here grants access.
+> Do not add a check to this app and treat it as protection.
+
+The old server-side guard (`proxy.ts`) and Data Access Layer (`lib/dal.ts`) are
+gone, because they no longer _can_ work: the session cookie belongs to the API's
+origin, so this server never receives it and cannot tell who is asking. Anything
+that renders user data must therefore be a Client Component that fetches for
+itself — which is why `app/todos/page.tsx` is an empty shell around
+`<TodosView/>`.
+
+One thing this buys back: the old `proxy.ts` could not redirect a signed-in user
+away from `/login`, because a cookie can outlive the session it points at and
+bouncing on mere presence caused an infinite loop. A real `/api/auth/me` answer
+has no such ambiguity, so `useRedirectWhenSignedIn()` is safe.
 
 ---
 
@@ -168,11 +212,19 @@ The board shows new tasks immediately, under a client-minted id
 its controls are held and a spinner replaces the delete button — otherwise
 ticking off a task you just added would send that fake id and get a 422.
 
-Board mutations (`setTodoCompleted`, `renameTodo`, `removeTodo`,
-`clearCompleted`) **return** a `MutationResult` rather than throwing. An
-exception escaping a Server Action called from a transition takes the whole
-route down; a single failed toggle should never do that. On failure the
-optimistic change reverts on its own and the reason appears in a banner.
+Board mutations never throw — an exception escaping an action called from a
+transition takes the whole route down, and a single failed toggle should never do
+that. `TodoBoard.mutate` takes a change _and its inverse_: it paints the change,
+sends the request, and on failure applies the inverse and shows the reason in a
+banner.
+
+The inverse matters. With no server-rendered list to fall back on, `TodosView`'s
+`useState` is the only copy of the data that exists, so a failed request has to
+undo precisely what it did. Restoring a snapshot of the whole list would also
+erase any task added while the failed request was in flight.
+
+`clearCompleted` is the exception: it fans out one DELETE per task, so a partial
+failure leaves some genuinely deleted. Rather than guess, it refetches.
 
 The composer is controlled rather than using `defaultValue`. React resets a form
 once its action settles, which against a real API is a second or two after
@@ -181,13 +233,16 @@ input would then lose.
 
 ### When the API is unreachable
 
-`app/error.tsx` catches it and offers a retry. The navbar and the public pages
-use `getCurrentUserSafe()` from `lib/dal.ts`, which degrades to "signed out"
-instead of throwing — the navbar renders in the root layout, and an error there
-escapes past the route's own boundary to the global fallback, replacing the whole
-app rather than just the part that needed data. That helper calls
-`unstable_rethrow` first, because Next.js signals `redirect()`, `notFound()` and
-dynamic rendering by throwing, and swallowing those breaks the framework.
+A `fetch` that never completes — the API is down, the network is offline, or CORS
+blocked the response — becomes an `ApiError` with code `NETWORK_ERROR` and status
+0, so it flows through the same handling as any API failure. The developer-facing
+hint (check CORS, check the API is running) goes to the console; the user sees
+plain prose.
+
+`SessionProvider` swallows a failed `/api/auth/me` and renders signed-out rather
+than throwing: it wraps the whole app, and an error there would blank everything
+instead of just the part that needed data. `TodosView` shows the failure with a
+"Try again" button, and `app/error.tsx` remains the last resort.
 
 `name` is nullable in the API, so `displayName()` in `lib/utils.ts` falls back to
 the email's local part. Due dates are stored at **midday UTC** and rendered from
@@ -224,24 +279,28 @@ app/
   (auth)/               login + signup (route group, no URL segment)
   todos/                the app itself
   error.tsx             route error boundary (API unreachable)
-  actions/              "use server" — auth.ts, todos.ts
 components/
   ui/                   design-system primitives
-  auth/                 forms, user menu
-  todos/                board + item
+  auth/                 forms, user menu, session.tsx (SessionProvider + guards)
+  todos/                view (fetches + owns the list), board, item
 lib/
   api/                  client.ts, auth.ts, todos.ts — the only HTTP in the app
-  dal.ts                session reads, authorization
-  env.ts                required environment variables, validated
+  env.ts                the one required environment variable, validated
+  form-state.ts         ApiError → ActionState / message
   theme.ts              theme cookie + pre-paint script
   validation.ts         zod schemas mirroring the API's request schemas
-proxy.ts                optimistic route guard
 instrumentation.ts      start-up environment validation
 ```
 
+Every route is statically prerendered — none of them fetch on the server.
+
 ### Note
 
-Server Actions return an `ActionState` that echoes the submitted values back.
+Form actions return an `ActionState` that echoes the submitted values back.
 React 19 resets an uncontrolled form once its action settles — including on
 failure — so without that echo a failed login would wipe the email the user
 typed. Passwords are never echoed.
+
+`useActionState` accepts any async `(previous, formData)` function, not only a
+Server Action, which is why the forms kept their shape when the server ones were
+removed.

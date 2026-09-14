@@ -1,6 +1,8 @@
 "use client";
 
-import { logout } from "@/app/actions/auth";
+import { useRouter } from "next/navigation";
+import { logoutRequest } from "@/lib/api/auth";
+import { useSession } from "@/components/auth/session";
 import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -14,6 +16,16 @@ import type { User } from "@/lib/types";
 
 export function UserMenu({ user }: { user: User }) {
   const name = displayName(user);
+  const router = useRouter();
+  const { setUser } = useSession();
+
+  async function logout() {
+    // `POST /api/auth/logout` goes browser → API; the browser applies the
+    // expiring `Set-Cookie` that comes back.
+    await logoutRequest();
+    setUser(null);
+    router.replace("/login");
+  }
 
   return (
     <DropdownMenu
@@ -69,7 +81,8 @@ export function UserMenu({ user }: { user: User }) {
       <DropdownMenuSeparator />
 
       {/* Left as a real form: the menu must not unmount before the browser
-          fires `submit`, so this entry dismisses via the redirect instead. */}
+          fires `submit`, so this entry dismisses via the redirect instead.
+          React 19 accepts a plain async function as a form action. */}
       <form action={logout}>
         <button
           type="submit"

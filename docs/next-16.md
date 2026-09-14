@@ -8,7 +8,7 @@ is bundled at `node_modules/next/dist/docs/`.
 
 | Thing                                                      | Next 16                                                                                                                                                                                    |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `middleware.ts`                                            | **Renamed to `proxy.ts`**, exporting a `proxy` function. Runtime is `nodejs` and cannot be configured — no edge. `export const config = { matcher }` is unchanged.                         |
+| `middleware.ts`                                            | **Renamed to `proxy.ts`**, exporting a `proxy` function. Runtime is `nodejs` and cannot be configured — no edge. Not used here: this app has no server-side route guard (see below).       |
 | `cookies()`, `headers()`, `draftMode()`                    | **Async only.** The sync compatibility shim from 15 is gone: `await cookies()`.                                                                                                            |
 | `params`, `searchParams`                                   | **Promises** in `page.tsx`, `layout.tsx`, `route.ts`, `default.tsx`, and the metadata image files. `await props.params`.                                                                   |
 | Page/layout prop types                                     | Generated global helpers: `PageProps<'/blog/[slug]'>`, `LayoutProps<'/'>`, `RouteContext<'/api/x'>`. `app/layout.tsx` already uses `LayoutProps<"/">`. Regenerate with `npx next typegen`. |
@@ -51,12 +51,32 @@ All paths are under `node_modules/next/dist/docs/`.
 
 Ignore `02-pages/**` entirely — this app is App Router only.
 
+## What this app deliberately doesn't use
+
+The browser calls the Todo API directly, so a whole family of Next.js features
+has nothing to act on here. Reaching for one of them means reintroducing the
+`browser → Next.js → API` hop this codebase exists to avoid:
+
+| Feature                                          | Why it's absent                                                                         |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Server Actions (`"use server"`)                  | Every mutation is a browser `fetch`. `useActionState` takes a plain async function too. |
+| `revalidatePath` / `revalidateTag` / `updateTag` | No server-held copy of user data exists to invalidate.                                  |
+| `proxy.ts` route guard                           | The session cookie is on the API's origin; this server never receives it.               |
+| Route Handlers (`app/api/**/route.ts`)           | That _is_ the extra hop. Adding one is the thing not to do.                             |
+| `cookies()` / `headers()` for auth               | Same reason as the guard — there is nothing to read.                                    |
+
+Authorization lives in the API. `useRequireSession()` only redirects the UI.
+
 ## React 19 details that bite here
 
 - A form is **reset once its action settles**, including on failure. That is why
-  Server Actions echo `values` back in `ActionState` and why the todo composer
-  is controlled rather than uncontrolled.
-- `useOptimistic` updates survive only inside a transition. React runs form
-  actions in one; manual calls need `startTransition`.
-- Server Component render is deduped by `React.cache`, which is what makes
-  `lib/dal.ts` cost one `/api/auth/me` per render pass.
+  form actions echo `values` back in `ActionState` and why the todo composer is
+  controlled rather than uncontrolled.
+- `useActionState` accepts **any** async `(previous, formData)` function, not
+  just a Server Action. Every form in this app uses the plain-function form.
+- `useOptimistic` is **not** used: it layers a temporary value over a base that
+  the server later replaces, and here nothing replaces it. `TodosView` owns the
+  list in `useState` and the board applies and reverts changes explicitly.
+- `use(Context)` replaces `useContext` — see `components/auth/session.tsx`.
+- Effects double-invoke in development strict mode, so you will see two
+  `/api/auth/me` requests in `npm run dev` and one in production.

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
+import { SessionProvider } from "@/components/auth/session";
 import { DEFAULT_THEME, THEME_SCRIPT } from "@/lib/theme";
 
 const geistSans = Geist({
@@ -49,8 +50,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col font-sans">
-        <Navbar />
-        {children}
+        {/* One `/api/auth/me` per page load, shared by the navbar and every
+            route below it. */}
+        <SessionProvider>
+          <Navbar />
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

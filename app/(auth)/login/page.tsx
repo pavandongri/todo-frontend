@@ -1,5 +1,5 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import {
   Card,
@@ -8,17 +8,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { getCurrentUserSafe } from "@/lib/dal";
 
 export const metadata: Metadata = {
   title: "Sign in",
   description: "Sign in to your Cadence account.",
 };
 
-export default async function LoginPage() {
-  // Already signed in? Skip the form.
-  if (await getCurrentUserSafe()) redirect("/todos");
-
+export default function LoginPage() {
   return (
     <Card className="shadow-modal">
       <CardHeader className="items-center text-center">
@@ -28,7 +24,15 @@ export default async function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <LoginForm />
+        {/*
+          The form reads `?next=` with `useSearchParams`, which opts its subtree
+          out of static prerendering unless it sits behind a Suspense boundary.
+          The "already signed in? go to /todos" check lives in the form too —
+          it needs the session, and the session now lives in the browser.
+        */}
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </CardContent>
     </Card>
   );

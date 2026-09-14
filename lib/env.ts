@@ -1,35 +1,30 @@
 import * as z from "zod";
 
 /**
- * Server environment, validated once and loudly.
+ * Public environment, validated once and loudly.
  *
- * Every variable here is **required** — there are no fallback defaults. A wrong
- * or missing value used to fail quietly and far from the cause: an unset
- * `API_BASE_URL` sent requests to the app itself, and a `SESSION_COOKIE_NAME`
- * that didn't match the backend's `COOKIE_NAME` made every visitor look signed
- * out. Both now stop the server before it accepts a single request.
+ * There is exactly one variable, and it is deliberately **public**: the browser
+ * calls the Todo API directly, so the API origin has to be inlined into the
+ * client bundle. That is what the `NEXT_PUBLIC_` prefix does — and it only
+ * happens when the reference is a literal `process.env.NEXT_PUBLIC_API_BASE_URL`,
+ * which is why it is spelled out below rather than read through a variable.
+ *
+ * There is no `SESSION_COOKIE_NAME` any more. The session cookie is httpOnly and
+ * belongs to the API's origin: the browser attaches it automatically and no code
+ * in this app can read it, so knowing its name buys nothing.
  */
 
 const EnvSchema = z.object({
-  API_BASE_URL: z
+  NEXT_PUBLIC_API_BASE_URL: z
     .url({ error: "must be an absolute URL, e.g. http://localhost:5000" })
     .refine((value) => /^https?:\/\//.test(value), {
       error: "must use http:// or https://",
     }),
-
-  SESSION_COOKIE_NAME: z
-    .string()
-    .min(1, { error: "must not be empty" })
-    .regex(/^[A-Za-z0-9!#$%&'*+\-.^_`|~]+$/, {
-      error: "must be a valid cookie name (no spaces, commas or semicolons)",
-    }),
 });
 
-export type ServerEnv = {
+export type PublicEnv = {
   /** Backend origin, never with a trailing slash. */
   API_BASE_URL: string;
-  /** Must match the backend's `COOKIE_NAME`. */
-  SESSION_COOKIE_NAME: string;
 };
 
 export class EnvironmentError extends Error {
@@ -39,23 +34,22 @@ export class EnvironmentError extends Error {
   }
 }
 
-let cached: ServerEnv | null = null;
+let cached: PublicEnv | null = null;
 
 /**
- * Returns the validated environment, throwing `EnvironmentError` if anything is
- * missing or malformed.
+ * Returns the validated environment, throwing `EnvironmentError` if the API
+ * origin is missing or malformed.
  *
  * Validation is lazy and memoised rather than run at module scope: importing
  * this file must not throw, or `next build` would fail on machines that
  * legitimately have no runtime configuration. `instrumentation.ts` calls it
  * during server start-up so a misconfigured app never reaches a request.
  */
-export function serverEnv(): ServerEnv {
+export function publicEnv(): PublicEnv {
   if (cached) return cached;
 
   const parsed = EnvSchema.safeParse({
-    API_BASE_URL: process.env.API_BASE_URL,
-    SESSION_COOKIE_NAME: process.env.SESSION_COOKIE_NAME,
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
   });
 
   if (!parsed.success) {
@@ -64,13 +58,10 @@ export function serverEnv(): ServerEnv {
     );
   }
 
-  const apiBaseUrl = parsed.data.API_BASE_URL.replace(/\/$/, "");
+  const apiBaseUrl = parsed.data.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
   assertNotSelf(apiBaseUrl);
 
-  cached = {
-    API_BASE_URL: apiBaseUrl,
-    SESSION_COOKIE_NAME: parsed.data.SESSION_COOKIE_NAME,
-  };
+  cached = { API_BASE_URL: apiBaseUrl };
 
   return cached;
 }
@@ -78,15 +69,24 @@ export function serverEnv(): ServerEnv {
 /**
  * Guards against pointing the app at itself.
  *
- * Every API call must reach the backend; a base URL on this server's own port
- * would loop requests back into Next.js and fail in a way that looks like a
- * backend bug. Only checked when the port is known, so it never false-positives.
+ * Every API call must reach the backend. This app serves no API routes at all,
+ * so a base URL on its own origin produces 404s that read like backend bugs.
  */
 function assertNotSelf(apiBaseUrl: string) {
+  const url = new URL(apiBaseUrl);
+
+  // In the browser the app's own origin is known exactly.
+  if (typeof window !== "undefined") {
+    if (url.origin === window.location.origin) {
+      throw selfError(`this app's own origin (${window.location.origin})`);
+    }
+    return;
+  }
+
+  // On the server only the port is known, and only when PORT is set.
   const ownPort = process.env.PORT;
   if (!ownPort) return;
 
-  const url = new URL(apiBaseUrl);
   const isLoopback =
     url.hostname === "localhost" ||
     url.hostname === "127.0.0.1" ||
@@ -96,17 +96,21 @@ function assertNotSelf(apiBaseUrl: string) {
   const port = url.port || (url.protocol === "https:" ? "443" : "80");
 
   if (isLoopback && port === ownPort) {
-    throw new EnvironmentError(
-      [
-        "Invalid environment configuration:",
-        "",
-        `  API_BASE_URL  points at this app's own port (${ownPort}).`,
-        "                It must point at the backend API, not at Next.js.",
-        "",
-        "The backend listens on its own PORT — see .env.example.",
-      ].join("\n"),
-    );
+    throw selfError(`this app's own port (${ownPort})`);
   }
+}
+
+function selfError(what: string) {
+  return new EnvironmentError(
+    [
+      "Invalid environment configuration:",
+      "",
+      `  NEXT_PUBLIC_API_BASE_URL  points at ${what}.`,
+      "                            It must point at the backend API, not at Next.js.",
+      "",
+      "The backend listens on its own PORT — see .env.example.",
+    ].join("\n"),
+  );
 }
 
 function formatIssues(fieldErrors: Record<string, string[] | undefined>) {

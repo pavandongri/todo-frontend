@@ -1,6 +1,6 @@
 ---
-description: Next.js 16 App Router conventions — routing, async request APIs, proxy, caching
-globs: app/**/*.tsx,app/**/*.ts,proxy.ts,instrumentation.ts,next.config.ts
+description: Next.js 16 App Router conventions — routing, async request APIs, what this app doesn't use
+globs: app/**/*.tsx,app/**/*.ts,instrumentation.ts,next.config.ts
 alwaysApply: false
 ---
 
@@ -12,29 +12,36 @@ Full delta list: `docs/next-16.md`.
 - `params` and `searchParams` are **Promises** — `await props.params`.
 - Type props with the generated helpers: `PageProps<'/todos/[id]'>`,
   `LayoutProps<'/'>`, `RouteContext<'…'>`. Regenerate: `npx next typegen`.
-- `middleware.ts` → **`proxy.ts`**, nodejs runtime only (no edge).
-  `export const config = { matcher }` is unchanged.
-- `revalidateTag` needs a cacheLife profile: `revalidateTag('t', 'max')`.
-  `revalidatePath('/todos')` is **unchanged** — that is what this repo uses.
-- `updateTag()` (read-your-writes) and `refresh()` are new; `cacheLife`/`cacheTag`
-  lost their `unstable_` prefix.
+- `middleware.ts` → **`proxy.ts`**, nodejs runtime only (no edge). Not used here.
 - `next lint` is removed — `npm run lint` runs eslint directly.
 
+## What this app deliberately doesn't use
+The browser calls the API directly, so these have nothing to act on. Reaching for
+one means reintroducing the hop this codebase exists to avoid:
+
+- **Server Actions** (`"use server"`) — every mutation is a browser `fetch`.
+- **`revalidatePath` / `revalidateTag` / `updateTag` / `refresh`** — no
+  server-held copy of user data exists to invalidate.
+- **Route Handlers** (`app/api/**/route.ts`) — that *is* the extra hop.
+- **`proxy.ts` route guard, `cookies()` for auth** — the session cookie is on the
+  API's origin; this server never receives it.
+
 ## This app's routing
+- All five routes are **statically prerendered**; none fetch on the server.
 - `app/(auth)/` is a route group: no URL segment.
 - `app/layout.tsx` must stay statically prerenderable — **do not add `cookies()`
-  to it**. The theme is read by the inline `THEME_SCRIPT` instead.
-- Data-fetching routes get a `loading.tsx` whose skeleton matches the real layout.
-- `app/error.tsx` is the route error boundary; its usual cause is an unreachable API.
-- `proxy.ts` checks cookie **presence** only — no API calls, because it runs on
-  every request including prefetches. Do **not** add a "signed-in users can't see
-  /login" redirect: a cookie can outlive its session and that creates a redirect
-  loop that locks users out. The authoritative check lives in `lib/dal.ts`.
-- Protecting a new route means adding its prefix to `PROTECTED_PREFIXES` *and*
-  calling `requireUser()` in the page.
+  to it**. The theme is read by the inline `THEME_SCRIPT` instead. It hosts
+  `<SessionProvider>`.
+- A route that needs data is a Server Component shell around a `"use client"`
+  view that fetches for itself — see `app/todos/page.tsx` → `<TodosView/>`.
+- Signed-in only? `useRequireSession()` in that client view, with a skeleton
+  while `loading`. A UX redirect, not protection.
+- `useSearchParams` in a client component needs a `<Suspense>` boundary or the
+  route loses static prerendering — see `app/(auth)/login/page.tsx`.
+- `app/error.tsx` is the route error boundary.
 
 ## Rendering
-Server Components by default. `redirect()` throws to unwind, so it must sit
-**outside** a try/catch. When catching around framework calls, call
-`unstable_rethrow(error)` first — Next signals `redirect()`, `notFound()` and
-dynamic rendering by throwing.
+Server Components by default; push `"use client"` as low as it will go
+(`app/page.tsx` stays a server component, `components/home-cta.tsx` is the
+island). `redirect()` is server-side — navigate from the client with
+`useRouter().replace()`.

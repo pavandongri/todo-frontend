@@ -1,11 +1,8 @@
-import { Suspense } from "react";
 import Link from "next/link";
-import { getCurrentUserSafe } from "@/lib/dal";
 import { NavLinks, type NavItem } from "@/components/nav-links";
 import { MobileNav } from "@/components/mobile-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { UserMenu } from "@/components/auth/user-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AccountSection } from "@/components/auth/account-section";
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview" },
@@ -30,50 +27,12 @@ export function Navbar() {
 
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
-          {/* The session lookup streams in so the rest of the chrome paints
-              immediately instead of waiting on the backend. */}
-          <Suspense
-            fallback={<Skeleton className="ml-1 size-7 rounded-full" />}
-          >
-            <AccountSection />
-          </Suspense>
+          {/* Reads the session from context, so the rest of the chrome paints
+              immediately instead of waiting on the API. */}
+          <AccountSection />
         </div>
       </div>
     </header>
-  );
-}
-
-async function AccountSection() {
-  const user = await getCurrentUserSafe();
-
-  if (user) {
-    return <UserMenu user={user} />;
-  }
-
-  return (
-    <div className="ml-1 flex items-center gap-2">
-      <Link
-        href="/login"
-        className={
-          "hidden h-8 items-center rounded-[7px] px-3 text-[13px] font-medium " +
-          "text-ink-muted transition-colors duration-150 " +
-          "hover:bg-surface-hover hover:text-ink sm:inline-flex"
-        }
-      >
-        Sign in
-      </Link>
-      <Link
-        href="/signup"
-        className={
-          "inline-flex h-8 items-center rounded-[7px] bg-accent px-3 text-[13px] font-medium " +
-          "text-accent-ink shadow-[var(--bevel-accent),var(--shadow-sm)] " +
-          "transition-[background-color,transform] duration-150 ease-[var(--ease-spring)] " +
-          "hover:bg-accent-hover active:scale-[0.97]"
-        }
-      >
-        Get started
-      </Link>
-    </div>
   );
 }
 

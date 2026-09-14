@@ -41,5 +41,5 @@ Compose the primitives in `components/ui/` rather than restyling raw elements:
 - Decorative SVGs inline, `aria-hidden="true"`, `stroke="currentColor"`.
 - Transition only the properties that move; presses use `active:scale-[0.97]`.
 - Format dates through `lib/utils.ts` (`formatDueDate`, `isOverdue`) — they work
-  in **UTC** on purpose, because a locale-dependent format renders differently on
-  the server and client and trips a hydration error.
+  in **UTC** on purpose, because a locale- or timezone-dependent format renders
+  differently in two places that must agree.

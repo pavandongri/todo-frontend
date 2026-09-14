@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 /**
  * Route-level error boundary.
  *
- * The most likely cause in practice is the API being unreachable — a Server
- * Component awaiting `lib/dal.ts` throws, and without this the user gets a bare
- * framework error page. `reset()` re-renders the segment, which retries the
- * request, so recovering is a single click once the API is back.
+ * A last resort. API failures are handled where they happen — `SessionProvider`
+ * degrades to signed-out, `TodosView` offers its own retry — so this catches the
+ * render errors those paths miss. `reset()` re-renders the segment, which
+ * remounts the components and re-runs their fetches.
  */
 export default function Error({
   error,

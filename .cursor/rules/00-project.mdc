@@ -5,29 +5,43 @@ alwaysApply: true
 
 Cadence — a todo app on **Next.js 16.3.5 (App Router, Turbopack) + React 19 +
 Tailwind v4 + zod v4**, TypeScript strict. Pure frontend: no API routes, no
-database. All data comes from the `demo-backend` Todo API over an httpOnly
-session cookie.
+database, no server-side logic at all. The **browser calls the `demo-backend`
+Todo API directly** over an httpOnly session cookie.
 
-Assume Next 16 differs from what you remember. `middleware` is now `proxy`,
-`cookies()`/`params`/`searchParams` are async-only, `next lint` is gone. See
-`docs/next-16.md` before using a framework API.
+## The architecture, in one picture
+
+```
+browser ──────────────────► demo-backend :5000     ← every /api/* call
+   │
+   └── Next.js :3000 serves HTML, JS and CSS. That is all it does.
+```
+
+There is no `browser → Next.js → API` hop. No Server Actions, no route handlers,
+no server-side session. Consequences you cannot design around: this server never
+receives the session cookie, so it cannot render user data; CORS and
+`credentials: "include"` are load-bearing; and there is no server cache to
+revalidate.
+
+Assume Next 16 differs from what you remember. `middleware` is now `proxy` (not
+used here), `cookies()`/`params`/`searchParams` are async-only, `next lint` is
+gone. See `docs/next-16.md` before using a framework API.
 
 ## Commands
 `npm run dev` (:3000, backend on :5000) · `npm run build` · `npm run lint`
 (`lint:fix`) · `npm run format` (`format:check`, prettier) · `npx tsc --noEmit`.
-No test suite. `.env` needs `API_BASE_URL` and
-`SESSION_COOKIE_NAME`; the server exits at start-up if either is missing.
+No test suite. `.env` needs `NEXT_PUBLIC_API_BASE_URL`; the server exits at
+start-up if it is missing. The backend needs `CORS_ORIGIN=http://localhost:3000`.
 
 ## Always
 1. **No `fetch` outside `lib/api/`** — ESLint enforces it. Use `apiRequest` /
    `apiData` / `apiList`.
-2. **Authorize next to the data**, never in a layout: `await requireUser()` from
-   `lib/dal.ts` at the top of the page or action.
+2. **Authorization belongs to the API.** `useRequireSession()` only redirects the
+   UI; it protects nothing. Never treat a client-side check as a boundary.
 3. **No hard-coded colours** — semantic utilities only (`bg-surface`,
    `text-ink-muted`, `border-hairline`). Tokens: `app/globals.css`.
 4. **Branch on `ApiError.code`, never `.message`.**
-5. **Server Components by default**; `"use client"` only for state, effects or
-   event handlers.
+5. **Server Components by default**; `"use client"` for state, effects, handlers
+   — and for anything touching the API. Keep the boundary low in the tree.
 6. Match the surrounding file's comment density — this codebase explains *why*,
    not *what*. Don't add narration to code that doesn't have it.
 

@@ -2,15 +2,56 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { signup } from "@/app/actions/auth";
+import { useRouter } from "next/navigation";
+import { signupRequest } from "@/lib/api/auth";
+import { useRedirectWhenSignedIn } from "@/components/auth/session";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/auth/password-input";
 import { FormBanner } from "@/components/auth/form-banner";
+import { fieldErrors, SignupSchema } from "@/lib/validation";
+import { toActionState } from "@/lib/form-state";
+import type { ActionState } from "@/lib/types";
 
 export function SignupForm() {
-  const [state, formAction, pending] = useActionState(signup, null);
+  const router = useRouter();
+  const { setUser } = useRedirectWhenSignedIn();
+
+  async function submit(
+    _previous: ActionState,
+    formData: FormData,
+  ): Promise<ActionState> {
+    const values = {
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+    };
+
+    const parsed = SignupSchema.safeParse({
+      name: formData.get("name"),
+      email: formData.get("email"),
+      password: formData.get("password"),
+    });
+
+    if (!parsed.success) {
+      return { ok: false, values, fieldErrors: fieldErrors(parsed.error) };
+    }
+
+    try {
+      // Register signs the user in too, so there is nothing further to call.
+      setUser(await signupRequest(parsed.data));
+    } catch (error) {
+      return {
+        ...toActionState(error, "Something went wrong. Please try again."),
+        values,
+      };
+    }
+
+    router.replace("/todos");
+    return { ok: true };
+  }
+
+  const [state, formAction, pending] = useActionState(submit, null);
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>

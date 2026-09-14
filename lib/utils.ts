@@ -36,11 +36,10 @@ const MONTHS = [
 /**
  * Formats a due date for display.
  *
- * Deliberately derived from the UTC parts rather than `toLocaleDateString`:
- * this renders on the server and again on the client, and a locale- or
- * timezone-dependent format would disagree between the two and trip a
- * hydration error. Due dates are stored at midday UTC so the UTC calendar day
- * always matches the day the user picked.
+ * Deliberately derived from the UTC parts rather than `toLocaleDateString`,
+ * which is locale- and timezone-dependent and so renders differently in two
+ * places that must agree. Due dates are stored at midday UTC so the UTC
+ * calendar day always matches the day the user picked.
  */
 export function formatDueDate(iso: string, now = new Date()): string {
   const date = new Date(iso);
@@ -72,4 +71,27 @@ export function toDueAtIso(date: string | undefined): string | undefined {
   if (!date) return undefined;
   const parsed = new Date(`${date}T12:00:00.000Z`);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
+/**
+ * Validates a `?next=` destination before navigating to it.
+ *
+ * The guard in `useRequireSession` puts the blocked path here, but the query
+ * string is attacker-controlled: anything that isn't a plain in-app path could
+ * bounce a freshly signed-in user to another origin. `//evil.com` and
+ * `https://evil.com` are both rejected — only a single leading slash passes.
+ */
+export function safeNextPath(next: string | null, fallback: string): string {
+  if (!next) return fallback;
+
+  const decoded = (() => {
+    try {
+      return decodeURIComponent(next);
+    } catch {
+      return "";
+    }
+  })();
+
+  const isInternal = /^\/(?!\/)/.test(decoded) && !decoded.startsWith("/\\");
+  return isInternal ? decoded : fallback;
 }

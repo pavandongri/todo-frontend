@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/signup-form";
 import {
   Card,
@@ -8,16 +7,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { getCurrentUserSafe } from "@/lib/dal";
 
 export const metadata: Metadata = {
   title: "Create account",
   description: "Create your Cadence account.",
 };
 
-export default async function SignupPage() {
-  if (await getCurrentUserSafe()) redirect("/todos");
-
+export default function SignupPage() {
   return (
     <Card className="shadow-modal">
       <CardHeader className="items-center text-center">
@@ -27,6 +23,7 @@ export default async function SignupPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Redirects an already-signed-in visitor to /todos from the client. */}
         <SignupForm />
       </CardContent>
     </Card>

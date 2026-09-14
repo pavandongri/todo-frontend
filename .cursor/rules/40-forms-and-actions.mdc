@@ -1,22 +1,27 @@
 ---
-description: Server Actions, form state and optimistic updates
-globs: app/actions/*.ts,components/auth/*.tsx,components/todos/*.tsx
+description: Form state, mutations and optimistic updates — all client-side
+globs: components/auth/*.tsx,components/todos/*.tsx
 alwaysApply: false
 ---
 
-## Two action shapes
+There are **no Server Actions** in this app. `useActionState` accepts any async
+`(previous, formData)` function, which is what every form here passes it.
+
+## Two shapes
 **Form actions** — `(previous: ActionState, formData: FormData) => ActionState`,
-driven by `useActionState`. Used by `login`, `signup`, `addTodo`.
+driven by `useActionState`. Used by login, signup and the todo composer. They call
+`lib/api/`, map failures with `toActionState`, and navigate with
+`useRouter().replace()` (not `redirect()`, which is server-side).
 
-**Direct mutations** — return `MutationResult` (`{ ok: true } | { ok: false; message }`).
-Used by `setTodoCompleted`, `renameTodo`, `removeTodo`, `clearCompleted`.
-They **return** failures rather than throwing: an exception escaping a Server
-Action called inside a transition takes the whole route down, and one failed
-toggle must never do that.
+**Direct mutations** — the board's `mutate(apply, revert, run, fallback)`. They
+never throw: an exception escaping an action called inside a transition takes the
+whole route down, and one failed toggle must never do that. On failure `mutate`
+applies `revert` and shows the reason in a `FormBanner`.
 
-Every action starts with `await requireUser()` and ends with
-`revalidatePath("/todos")`. `redirect()` throws to unwind, so it goes **outside**
-the try/catch.
+Pass a change *and its inverse*, not a snapshot. `TodosView`'s `useState` is the
+only copy of the list that exists, so a revert must undo precisely what it did —
+restoring a whole snapshot would also erase a task added while the failed request
+was in flight.
 
 ## ActionState
 ```ts
@@ -41,10 +46,13 @@ an uncontrolled value. Restore failed values during render, guarded so anything
 typed since is never clobbered; don't use an effect.
 
 ## Optimistic updates
-`useOptimistic(todos, reduce)` with a discriminated-union action and a pure
-reducer. Optimistic rows carry a client-minted `optimistic-` id which **must
-never be sent to the API** — it only accepts UUIDs, so `isPending()` holds a
-row's controls and shows a spinner until the server confirms it. Optimistic state
-only survives inside a transition; form actions already run in one, manual calls
-need `startTransition`. On `{ ok: false }` show `message` — the optimistic change
-reverts on its own.
+`useOptimistic` is **not** used: it layers a temporary value over a base the
+server later replaces, and nothing replaces it here. Instead:
+
+- Apply the change to state, send the request, undo exactly that change on failure.
+- For a **create**, mint a temporary `optimistic-`-prefixed id, then swap the
+  placeholder for the row the API returns. Those ids **must never reach the API**
+  — it only accepts UUIDs — so `isPending()` holds a row's controls and shows a
+  spinner until the real row arrives.
+- `clearCompleted` refetches on failure instead of reverting: it fans out one
+  DELETE per task, so a partial failure leaves some genuinely deleted.

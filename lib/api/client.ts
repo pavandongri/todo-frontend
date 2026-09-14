@@ -1,9 +1,11 @@
-import "server-only";
-import { cookies } from "next/headers";
-import { serverEnv } from "@/lib/env";
+import { publicEnv } from "@/lib/env";
 
 /**
  * HTTP boundary for the Todo API (demo-backend).
+ *
+ * Every call in this app is made **by the browser, straight to the API** — they
+ * show up in the Network panel as requests to the backend's origin. Nothing is
+ * relayed through Next.js, which serves no API routes of its own.
  *
  * Conventions this file encodes, straight from the OpenAPI document:
  *   - success bodies wrap their payload in `data`, lists add a sibling `meta`
@@ -13,16 +15,11 @@ import { serverEnv } from "@/lib/env";
  */
 
 /**
- * Backend origin. Read through `serverEnv()` so a missing or self-referential
+ * Backend origin. Read through `publicEnv()` so a missing or self-referential
  * value fails at start-up rather than silently producing a bad request URL.
  */
 export function apiBaseUrl(): string {
-  return serverEnv().API_BASE_URL;
-}
-
-/** Session cookie issued by the API; `COOKIE_NAME` on the backend. */
-export function sessionCookieName(): string {
-  return serverEnv().SESSION_COOKIE_NAME;
+  return publicEnv().API_BASE_URL;
 }
 
 /** Stable error identifiers. Branch on these, never on the message. */
@@ -44,7 +41,14 @@ export type ApiErrorCode =
   | "VALIDATION_ERROR"
   | "TOO_MANY_REQUESTS"
   | "INTERNAL_SERVER_ERROR"
-  | "DATABASE_UNAVAILABLE";
+  | "DATABASE_UNAVAILABLE"
+  /**
+   * Not from the API — the request never reached it. Raised locally when
+   * `fetch` itself rejects: the API is down, the network is offline, or the
+   * browser blocked the response because this origin is missing from the API's
+   * CORS allowlist. It has no HTTP status, so `status` is 0.
+   */
+  | "NETWORK_ERROR";
 
 export class ApiError extends Error {
   status: number;
@@ -77,6 +81,11 @@ export class ApiError extends Error {
   get isUnauthenticated() {
     return this.code === "UNAUTHORIZED" || this.code === "INVALID_SESSION";
   }
+
+  /** True when the request never reached the API at all. */
+  get isNetworkFailure() {
+    return this.code === "NETWORK_ERROR";
+  }
 }
 
 type RequestOptions = Omit<RequestInit, "body"> & {
@@ -87,21 +96,19 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 };
 
 /**
- * Calls the API with the browser's cookies attached.
+ * Calls the API directly from wherever this runs — in practice, the browser.
  *
- * Server-side `fetch` sends no cookies of its own, so the incoming request's
- * `Cookie` header is forwarded explicitly — that is what makes the httpOnly
- * session cookie work from Server Components and Server Actions. Because these
- * calls are server-to-server, CORS never enters into it; the API's
- * `CORS_ORIGIN` allowlist only matters for calls made from the browser.
+ * `credentials: "include"` is what carries the session. The cookie was set by
+ * the API on the API's own origin, so this is a cross-origin request and the
+ * browser sends no cookies unless asked; without it every call comes back 401.
+ * The flip side is that the API must name this app's exact origin in its
+ * `CORS_ORIGIN` allowlist and answer with `Access-Control-Allow-Credentials:
+ * true` — a wildcard `*` is not permitted alongside credentials.
  */
 export async function apiRequest(
   path: string,
   { body, headers, query, ...init }: RequestOptions = {},
 ): Promise<Response> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
-
   const url = new URL(`${apiBaseUrl()}${path}`);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined) url.searchParams.set(key, String(value));
@@ -109,18 +116,37 @@ export async function apiRequest(
 
   const hasJsonBody = body !== undefined && body !== null;
 
-  return fetch(url, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
-      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-      ...headers,
-    },
-    body: hasJsonBody ? JSON.stringify(body) : undefined,
-    // Session-scoped data must never be shared between users.
-    cache: "no-store",
-  });
+  try {
+    return await fetch(url, {
+      ...init,
+      headers: {
+        Accept: "application/json",
+        ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
+        ...headers,
+      },
+      body: hasJsonBody ? JSON.stringify(body) : undefined,
+      // Send the API's session cookie on this cross-origin request.
+      credentials: "include",
+      // Session-scoped data must never be served from a stale cache.
+      cache: "no-store",
+    });
+  } catch (cause) {
+    // `fetch` rejects only when the request never completed. The distinction
+    // matters to the developer, not the user, so the hint goes to the console
+    // and the thrown message stays plain.
+    console.error(
+      `Could not reach the API at ${apiBaseUrl()}. Check that it is running, ` +
+        `and that ${typeof window === "undefined" ? "this app's origin" : window.location.origin} ` +
+        "is listed in its CORS_ORIGIN allowlist.",
+      cause,
+    );
+
+    throw new ApiError({
+      message: "We couldn't reach the server. Check your connection and retry.",
+      status: 0,
+      code: "NETWORK_ERROR",
+    });
+  }
 }
 
 /** `apiRequest` + unwrapping of the `data` envelope. Throws `ApiError` on failure. */
@@ -162,11 +188,7 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-/**
- * Builds an `ApiError` from a response and its already-read body.
- * Exported because callers that need the raw `Response` (to relay cookies)
- * read the body themselves and can't go through `apiData`.
- */
+/** Builds an `ApiError` from a response and its already-read body. */
 export function buildApiError(response: Response, payload: unknown): ApiError {
   const error = (payload as { error?: Record<string, unknown> } | null)?.error;
 
@@ -227,87 +249,4 @@ function splitValidationIssues(details: unknown) {
   }
 
   return { fieldErrors, formErrors };
-}
-
-/**
- * Copies `Set-Cookie` headers from an API response onto our own response.
- *
- * The API owns the session cookie, but its headers stop at this server — the
- * browser only sees what Next.js sends. Relaying them keeps the cookie httpOnly
- * end to end, with no token passing through client-side JavaScript.
- *
- * Only valid inside a Server Action or Route Handler.
- */
-export async function relaySetCookies(response: Response): Promise<void> {
-  const setCookies = response.headers.getSetCookie?.() ?? [];
-  if (setCookies.length === 0) return;
-
-  const cookieStore = await cookies();
-
-  for (const raw of setCookies) {
-    const parsed = parseSetCookie(raw);
-    if (parsed) cookieStore.set(parsed.name, parsed.value, parsed.options);
-  }
-}
-
-type CookieOptions = Parameters<Awaited<ReturnType<typeof cookies>>["set"]>[2];
-
-function parseSetCookie(
-  raw: string,
-): { name: string; value: string; options: CookieOptions } | null {
-  const [pair, ...attributes] = raw.split(";");
-  const separator = pair.indexOf("=");
-  if (separator === -1) return null;
-
-  const name = pair.slice(0, separator).trim();
-  const value = decodeURIComponent(pair.slice(separator + 1).trim());
-  if (!name) return null;
-
-  const options: NonNullable<CookieOptions> = {};
-
-  for (const attribute of attributes) {
-    const index = attribute.indexOf("=");
-    const key = (index === -1 ? attribute : attribute.slice(0, index))
-      .trim()
-      .toLowerCase();
-    const attrValue = index === -1 ? "" : attribute.slice(index + 1).trim();
-
-    switch (key) {
-      case "path":
-        options.path = attrValue;
-        break;
-      case "domain":
-        options.domain = attrValue;
-        break;
-      case "max-age": {
-        const maxAge = Number(attrValue);
-        if (!Number.isNaN(maxAge)) options.maxAge = maxAge;
-        break;
-      }
-      case "expires": {
-        const expires = new Date(attrValue);
-        if (!Number.isNaN(expires.getTime())) options.expires = expires;
-        break;
-      }
-      case "httponly":
-        options.httpOnly = true;
-        break;
-      case "secure":
-        options.secure = true;
-        break;
-      case "samesite": {
-        const sameSite = attrValue.toLowerCase();
-        if (
-          sameSite === "lax" ||
-          sameSite === "strict" ||
-          sameSite === "none"
-        ) {
-          options.sameSite = sameSite;
-        }
-        break;
-      }
-    }
-  }
-
-  return { name, value, options };
 }

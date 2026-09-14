@@ -1,4 +1,3 @@
-import "server-only";
 import { apiData, apiList } from "@/lib/api/client";
 import type { Todo } from "@/lib/types";
 
